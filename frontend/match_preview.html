@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bolão da Copa - Match Feedback</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+        :root {
+            --bg-primary: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --emerald-primary: #10b981;
+            --emerald-light: #ecfdf5;
+            --emerald-dark: #047857;
+            --amber-primary: #f59e0b;
+            --amber-light: #fffbeb;
+            --amber-dark: #b45309;
+            --border-color: #f1f5f9;
+            --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background-color: var(--bg-primary);
+            background-image: 
+                radial-gradient(at 0% 0%, hsla(160, 84%, 93%, 0.4) 0px, transparent 50%),
+                radial-gradient(at 100% 0%, hsla(45, 93%, 93%, 0.3) 0px, transparent 50%);
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 40px 20px;
+            margin: 0;
+            gap: 28px;
+            min-height: 100vh;
+            box-sizing: border-box;
+            flex-wrap: wrap;
+        }
+
+        /* -----------------------------------------
+           CARDS COMMON STYLES
+           ----------------------------------------- */
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 24px;
+            border: 1px solid rgba(226, 232, 240, 0.8);
+            box-shadow: 0 10px 30px -10px rgba(15, 23, 42, 0.06), 
+                        0 1px 3px -1px rgba(15, 23, 42, 0.02);
+            padding: 28px;
+            box-sizing: border-box;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px -15px rgba(15, 23, 42, 0.12),
+                        0 2px 8px -2px rgba(15, 23, 42, 0.04);
+        }
+
+        .card-bot {
+            width: 440px;
+        }
+
+        .card-ranking {
+            width: 360px;
+        }
+
+        /* -----------------------------------------
+           CARD DA ESQUERDA: PALPITES DO JOGO
+           ----------------------------------------- */
+        .header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .aviso-container {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background-color: var(--emerald-light);
+            color: var(--emerald-dark);
+            padding: 8px 16px;
+            border-radius: 9999px;
+            font-weight: 700;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            margin-bottom: 20px;
+            animation: pulse-badge 2s infinite ease-in-out;
+        }
+
+        @keyframes pulse-badge {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.03); opacity: 0.95; }
+        }
+
+        .matchup {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            padding: 20px 24px;
+            border-radius: 20px;
+            border: 1px solid var(--border-color);
+            margin-bottom: 24px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .matchup::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, #3b82f6, #10b981);
+            opacity: 0.8;
+        }
+
+        .team {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-weight: 700;
+            color: var(--text-main);
+            font-size: 15px;
+            width: 40%;
+            gap: 8px;
+        }
+
+        .flag-wrapper {
+            width: 60px;
+            height: 60px;
+            background: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 36px;
+            box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+            border: 2px solid #fff;
+            transition: transform 0.2s ease;
+        }
+
+        .team:hover .flag-wrapper {
+            transform: scale(1.1) rotate(5deg);
+        }
+
+        .versus-badge {
+            background-color: var(--text-main);
+            color: white;
+            font-size: 11px;
+            font-weight: 800;
+            padding: 6px 12px;
+            border-radius: 9999px;
+            letter-spacing: 1px;
+            box-shadow: 0 4px 10px rgba(15, 23, 42, 0.15);
+            z-index: 2;
+        }
+
+        .palpites-title {
+            font-size: 12px;
+            color: var(--text-muted);
+            text-align: center;
+            margin-bottom: 16px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 12px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .player-list {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .player-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 8px;
+            border-radius: 12px;
+            transition: background-color 0.2s ease;
+        }
+
+        .player-row:hover {
+            background-color: #f8fafc;
+        }
+
+        .player-info {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        /* Avatar com gradiente dinâmico */
+        .avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 700;
+            box-sizing: border-box;
+            color: white;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+            text-transform: uppercase;
+        }
+
+        /* Cores variadas para os avatares */
+        .avatar-1 { background: linear-gradient(135deg, #6366f1, #4f46e5); }
+        .avatar-2 { background: linear-gradient(135deg, #ec4899, #d946ef); }
+        .avatar-3 { background: linear-gradient(135deg, #14b8a6, #0d9488); }
+        .avatar-4 { background: linear-gradient(135deg, #f59e0b, #d97706); }
+        .avatar-5 { background: linear-gradient(135deg, #ef4444, #dc2626); }
+        .avatar-6 { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
+
+        .player-name {
+            font-size: 14px;
+            color: #334155;
+            font-weight: 600;
+        }
+
+        .score-pill {
+            font-size: 15px;
+            font-weight: 800;
+            color: var(--text-main);
+            background-color: #f1f5f9;
+            padding: 6px 14px;
+            border-radius: 10px;
+            letter-spacing: 1.5px;
+            border: 1px solid rgba(226, 232, 240, 0.5);
+            transition: all 0.2s ease;
+        }
+
+        .player-row:hover .score-pill {
+            background-color: var(--text-main);
+            color: white;
+            border-color: var(--text-main);
+        }
+
+        /* -----------------------------------------
+           CARD DA DIREITA: RANKING GERAL
+           ----------------------------------------- */
+        .ranking-title-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 18px;
+            font-weight: 800;
+            color: var(--text-main);
+            margin-bottom: 24px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 12px;
+        }
+
+        .rank-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .rank-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 12px;
+            border-radius: 16px;
+            transition: all 0.2s ease;
+        }
+
+        .rank-item:hover {
+            background-color: #f8fafc;
+            transform: scale(1.02);
+        }
+
+        .rank-left {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .rank-position {
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 800;
+            color: var(--text-muted);
+            border-radius: 50%;
+        }
+
+        .rank-item.top-1 {
+            background-color: #fffbeb;
+            border: 1px solid rgba(251, 191, 36, 0.2);
+        }
+        .rank-item.top-1 .rank-position {
+            font-size: 18px;
+        }
+
+        .rank-item.top-2 {
+            background-color: #f8fafc;
+            border: 1px solid rgba(148, 163, 184, 0.15);
+        }
+        .rank-item.top-2 .rank-position {
+            font-size: 18px;
+        }
+
+        .rank-item.top-3 {
+            background-color: #fff7ed;
+            border: 1px solid rgba(249, 115, 22, 0.15);
+        }
+        .rank-item.top-3 .rank-position {
+            font-size: 18px;
+        }
+
+        .avatar-gold {
+            border: 2px solid #fbbf24;
+            background: linear-gradient(135deg, #fef3c7, #fde68a);
+            color: #b45309;
+        }
+
+        .avatar-silver {
+            border: 2px solid #cbd5e1;
+            background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
+            color: #475569;
+        }
+
+        .avatar-bronze {
+            border: 2px solid #fed7aa;
+            background: linear-gradient(135deg, #ffedd5, #fed7aa);
+            color: #c2410c;
+        }
+
+        .rank-points {
+            font-size: 16px;
+            font-weight: 800;
+            color: var(--emerald-primary);
+            background-color: var(--emerald-light);
+            padding: 4px 10px;
+            border-radius: 8px;
+        }
+        
+        .rank-points-neutral {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--text-muted);
+            padding: 4px 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- CARD DA ESQUERDA: PALPITES DO JOGO -->
+    <div class="card card-bot">
+        <div class="header">
+            <div class="aviso-container">
+                <span>⚽</span> O jogo vai começar!
+            </div>
+            
+            <div class="matchup">
+                <div class="team">
+                    <div class="flag-wrapper">🇨🇦</div>
+                    <span>Canadá</span>
+                </div>
+                <div class="versus-badge">VS</div>
+                <div class="team">
+                    <div class="flag-wrapper">🇧🇦</div>
+                    <span>Bósnia</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="palpites-title">Palpites da Galera</div>
+
+        <div class="player-list">
+            <div class="player-row">
+                <div class="player-info">
+                    <div class="avatar avatar-1">B</div>
+                    <div class="player-name">Balademon</div>
+                </div>
+                <div class="score-pill">2 - 0</div>
+            </div>
+            <div class="player-row">
+                <div class="player-info">
+                    <div class="avatar avatar-2">L</div>
+                    <div class="player-name">Lucas Galdino</div>
+                </div>
+                <div class="score-pill">3 - 1</div>
+            </div>
+            <div class="player-row">
+                <div class="player-info">
+                    <div class="avatar avatar-3">T</div>
+                    <div class="player-name">Tufão</div>
+                </div>
+                <div class="score-pill">1 - 1</div>
+            </div>
+            <div class="player-row">
+                <div class="player-info">
+                    <div class="avatar avatar-4">B</div>
+                    <div class="player-name">Bab</div>
+                </div>
+                <div class="score-pill">2 - 1</div>
+            </div>
+            <div class="player-row">
+                <div class="player-info">
+                    <div class="avatar avatar-5">P</div>
+                    <div class="player-name">Pedipipa</div>
+                </div>
+                <div class="score-pill">1 - 0</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CARD DA DIREITA: RANKING GERAL -->
+    <div class="card card-ranking">
+        <div class="ranking-title-container">
+            <span>🏆</span>
+            <span>Ranking Geral</span>
+        </div>
+
+        <div class="rank-list">
+            <!-- 1º Lugar -->
+            <div class="rank-item top-1">
+                <div class="rank-left">
+                    <div class="rank-position">🥇</div>
+                    <div class="avatar avatar-gold">B</div>
+                    <div class="player-name">Balademon</div>
+                </div>
+                <div class="rank-points">4 pts</div>
+            </div>
+
+            <!-- 2º Lugar -->
+            <div class="rank-item top-2">
+                <div class="rank-left">
+                    <div class="rank-position">🥈</div>
+                    <div class="avatar avatar-silver">L</div>
+                    <div class="player-name">Lucas Galdino</div>
+                </div>
+                <div class="rank-points">4 pts</div>
+            </div>
+
+            <!-- 3º Lugar -->
+            <div class="rank-item top-3">
+                <div class="rank-left">
+                    <div class="rank-position">🥉</div>
+                    <div class="avatar avatar-bronze">T</div>
+                    <div class="player-name">Tufão</div>
+                </div>
+                <div class="rank-points">3 pts</div>
+            </div>
+
+            <!-- 4º Lugar -->
+            <div class="rank-item">
+                <div class="rank-left">
+                    <div class="rank-position">4</div>
+                    <div class="avatar avatar-4">B</div>
+                    <div class="player-name">Bab</div>
+                </div>
+                <div class="rank-points-neutral">1 pt</div>
+            </div>
+
+            <!-- 5º Lugar -->
+            <div class="rank-item">
+                <div class="rank-left">
+                    <div class="rank-position">5</div>
+                    <div class="avatar avatar-5">P</div>
+                    <div class="player-name">Pedipipa</div>
+                </div>
+                <div class="rank-points-neutral">1 pt</div>
+            </div>
+
+            <!-- 6º Lugar -->
+            <div class="rank-item">
+                <div class="rank-left">
+                    <div class="rank-position">6</div>
+                    <div class="avatar avatar-6">Y</div>
+                    <div class="player-name">Yurileo</div>
+                </div>
+                <div class="rank-points-neutral">1 pt</div>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>
