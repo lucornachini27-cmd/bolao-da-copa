@@ -140,6 +140,7 @@
       document.getElementById("userBox").classList.remove("hidden");
       document.getElementById("userBox").classList.add("flex");
       await Promise.all([loadProfile(), loadMatches(), loadRanking()]);
+      if (!autoRefreshStarted) { autoRefreshStarted = true; setInterval(autoRefresh, 60000); }
     }
 
     async function loadProfile() {
@@ -224,6 +225,8 @@
     }
 
     let MY_BETS = {};  // { match_id: {predicted_home, predicted_away, points_earned} }
+    let MATCH_SIG = "";          // assinatura do último estado renderizado (placar/status)
+    let autoRefreshStarted = false;
 
     async function loadMatches() {
       // Só jogos com seleções definidas + os palpites que ESTE usuário já salvou.
@@ -233,6 +236,7 @@
       ]);
       MY_BETS = {};
       myBets.forEach(b => MY_BETS[b.match_id] = b);
+      MATCH_SIG = matches.map(m => `${m.id}:${m.status}:${m.score_home}:${m.score_away}:${m.is_open}`).join("|");
 
       // Jogos de hoje/que vêm em primeiro (cronológico); os que já passaram descem pro fim.
       const TWO_H = 2 * 3600 * 1000;
@@ -307,6 +311,16 @@
       }).join("");
       tickCountdowns();
       startCountdownTicker();
+    }
+
+    async function autoRefresh() {
+      try {
+        const matches = await fetch(`${API}/matches?defined_only=true`, { headers: headers() }).then(r => r.json());
+        const sig = matches.map(m => `${m.id}:${m.status}:${m.score_home}:${m.score_away}:${m.is_open}`).join("|");
+        if (document.activeElement && /^[ha]_\d/.test(document.activeElement.id || "")) return;  // digitando placar
+        if (sig === MATCH_SIG) return;  // nada mudou desde o último render
+        await Promise.all([loadMatches(), loadRanking(), loadProfile()]);
+      } catch (e) { /* silencioso */ }
     }
 
     async function saveBet(matchId) {

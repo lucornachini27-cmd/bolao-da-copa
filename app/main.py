@@ -9,13 +9,16 @@ from fastapi.staticfiles import StaticFiles
 from app.api.v1.router import api_router
 from app.core.bootstrap import bootstrap
 from app.core.config import settings
+from app.core.scheduler import shutdown_scheduler, start_scheduler
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Cria tabelas, semeia configurações e o admin no primeiro boot.
     bootstrap()
+    start_scheduler()
     yield
+    shutdown_scheduler()
 
 
 app = FastAPI(title=settings.app_name, version="0.1.0", lifespan=lifespan)
