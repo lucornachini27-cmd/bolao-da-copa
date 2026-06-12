@@ -13,10 +13,10 @@ from app.utils.timezone import now_utc, to_local
 
 
 def compute(db: Session) -> List[dict]:
-    # "Cravadas": palpite idêntico ao placar final (o que rende o bônus de placar exato).
+    # "Cravadas": palpite idêntico ao placar (o que rende o bônus de placar exato).
     exact_case = case(
         (
-            (Match.status == "FINISHED")
+            (Match.status.in_(["FINISHED", "IN_PLAY", "PAUSED", "AWARDED"]))
             & (Bet.predicted_home == Match.score_home)
             & (Bet.predicted_away == Match.score_away),
             1,

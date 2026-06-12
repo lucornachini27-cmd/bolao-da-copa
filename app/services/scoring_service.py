@@ -40,8 +40,8 @@ def points_for(
 
 
 def recalculate_match(db: Session, match: Match) -> int:
-    """Recalcula os pontos de todos os palpites de uma partida finalizada."""
-    if match.status != "FINISHED" or match.score_home is None or match.score_away is None:
+    """Recalcula os pontos de todos os palpites de uma partida (finalizada ou ao vivo)."""
+    if match.status not in ("FINISHED", "IN_PLAY", "PAUSED", "AWARDED") or match.score_home is None or match.score_away is None:
         return 0
 
     points_exact = settings_service.get_setting_int(db, "points_exact_score", 2)
@@ -65,9 +65,9 @@ def recalculate_match(db: Session, match: Match) -> int:
     return changed
 
 
-def recalculate_all_finished(db: Session) -> int:
-    """Recalcula todas as partidas finalizadas. Retorna nº de palpites atualizados."""
+def recalculate_all_scorable(db: Session) -> int:
+    """Recalcula todas as partidas ativas ou finalizadas. Retorna nº de palpites atualizados."""
     total_changed = 0
-    for match in db.query(Match).filter(Match.status == "FINISHED").all():
+    for match in db.query(Match).filter(Match.status.in_(["FINISHED", "IN_PLAY", "PAUSED", "AWARDED"])).all():
         total_changed += recalculate_match(db, match)
     return total_changed

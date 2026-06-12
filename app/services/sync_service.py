@@ -51,5 +51,5 @@ def run_full_sync(db: Session) -> dict:
     """Fluxo completo do botão/cron: busca a ESPN, faz upsert e recalcula pontos."""
     matches = football_api.fetch_matches()
     stats = sync_matches(db, matches)
-    stats["points_recalculated"] = scoring_service.recalculate_all_finished(db)
+    stats["points_recalculated"] = scoring_service.recalculate_all_scorable(db)
     return stats
