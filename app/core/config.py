@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     espn_dates: str = "20260611-20260719"  # janela da Copa 2026 (YYYYMMDD-YYYYMMDD)
 
     # Sincronização automática com a ESPN (minutos; 0 desliga).
-    auto_sync_minutes: int = 5
+    auto_sync_minutes: int = 10
 
     # Auth (JWT)
     secret_key: str = "CHANGE_ME_dev_only_nao_use_em_producao"
@@ -36,6 +36,12 @@ class Settings(BaseSettings):
     # Bootstrap do admin no primeiro deploy (via variáveis de ambiente).
     bootstrap_admin_user: str = ""
     bootstrap_admin_password: str = ""
+
+    # Evolution API (WhatsApp)
+    evolution_api_url: str = ""
+    evolution_api_key: str = ""
+    evolution_instance_name: str = ""
+    whatsapp_target_number: str = "" # Número ou ID do grupo para onde enviar
 
     model_config = SettingsConfigDict(
         env_file=".env",

@@ -27,6 +27,10 @@ class Match(Base):
     score_home = Column(SmallInteger, nullable=True)  # NULL enquanto não finalizado
     score_away = Column(SmallInteger, nullable=True)
 
+    # Controle do Bot de WhatsApp
+    preview_sent = Column(SmallInteger, default=0, nullable=False) # 0=Nao, 1=Sim
+    result_sent = Column(SmallInteger, default=0, nullable=False)
+
     last_updated = Column(DateTime(timezone=True), nullable=True)  # "lastUpdated" da API
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())

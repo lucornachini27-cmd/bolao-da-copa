@@ -5,8 +5,8 @@ services:
     name: bolao-da-copa
     runtime: python
     plan: free
-    buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    buildCommand: pip install -r requirements.txt && playwright install chromium --with-deps
+    startCommand: alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: PYTHON_VERSION
         value: "3.12.6"
@@ -17,4 +17,12 @@ services:
       - key: BOOTSTRAP_ADMIN_USER
         sync: false
       - key: BOOTSTRAP_ADMIN_PASSWORD
+        sync: false
+      - key: EVOLUTION_API_URL
+        sync: false
+      - key: EVOLUTION_API_KEY
+        sync: false
+      - key: EVOLUTION_INSTANCE_NAME
+        sync: false
+      - key: WHATSAPP_TARGET_NUMBER
         sync: false
