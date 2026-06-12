@@ -228,7 +228,8 @@ def generate_result_image(db: Session, match_id: int, mock_score=None) -> str:
             "predicted_home": bet.predicted_home,
             "predicted_away": bet.predicted_away,
             "points": pts,
-            "initial": user.name[0].upper() if user.name else "?"
+            "initial": user.name[0].upper() if user.name else "?",
+            "photo_url": user.photo_url
         })
 
     # Sort bets by points descending
