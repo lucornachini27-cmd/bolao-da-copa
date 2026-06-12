@@ -28,3 +28,6 @@ tzdata>=2024.1
 
 # --- Testes ---
 pytest>=8.0
+
+# --- Automação do WhatsApp / Screenshots ---
+playwright>=1.40
