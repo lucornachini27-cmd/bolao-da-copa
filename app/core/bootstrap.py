@@ -19,8 +19,21 @@ _SETTINGS_DEFAULTS = [
 ]
 
 
+def _migrate() -> None:
+    """Migrações idempotentes p/ Postgres (em SQLite viram no-op)."""
+    from sqlalchemy import text
+
+    for sql in ("ALTER TABLE users ALTER COLUMN photo_url TYPE TEXT",):
+        try:
+            with engine.begin() as conn:
+                conn.execute(text(sql))
+        except Exception:
+            pass  # SQLite não suporta / coluna já é TEXT
+
+
 def bootstrap() -> None:
     Base.metadata.create_all(bind=engine)
+    _migrate()
     db = SessionLocal()
     try:
         # Configurações padrão (não sobrescreve as existentes).

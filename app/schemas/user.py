@@ -15,6 +15,12 @@ class AdminUserCreate(BaseModel):
     password: Optional[str] = None
 
 
+class UserUpdate(BaseModel):
+    """Edição do próprio perfil (nome e/ou foto)."""
+    name: Optional[str] = Field(default=None, min_length=1, max_length=120)
+    photo_url: Optional[str] = None
+
+
 class UserOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: int

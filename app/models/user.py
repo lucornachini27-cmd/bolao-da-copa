@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, DateTime, Integer, String, func
+from sqlalchemy import Boolean, Column, DateTime, Integer, String, Text, func
 from sqlalchemy.orm import relationship
 
 from app.core.database import Base
@@ -11,7 +11,7 @@ class User(Base):
     name = Column(String(120), nullable=False, unique=True, index=True)  # = "usuário" (login)
     email = Column(String(255), nullable=True, unique=True, index=True)  # opcional/interno
     password_hash = Column(String(255), nullable=False)  # bcrypt; nunca texto puro
-    photo_url = Column(String(255), nullable=True)
+    photo_url = Column(Text, nullable=True)  # URL ou foto em base64 (data URL)
     is_admin = Column(Boolean, nullable=False, default=False)  # edita as settings
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())

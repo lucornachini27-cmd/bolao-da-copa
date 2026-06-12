@@ -97,6 +97,27 @@
     </div>
   </div>
 
+  <!-- Modal: editar meu perfil -->
+  <div id="editModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onclick="if(event.target===this)closeEdit()">
+    <div class="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-6">
+      <h3 class="text-lg font-extrabold mb-4">Meu perfil</h3>
+      <div class="flex flex-col items-center gap-3 mb-5">
+        <img id="editAvatar" class="w-24 h-24 rounded-full object-cover ring-4 ring-emerald-100 bg-slate-100" />
+        <label class="text-sm font-bold text-emerald-700 cursor-pointer hover:underline">
+          📷 Trocar foto
+          <input type="file" accept="image/*" class="hidden" onchange="pickPhoto(event)" />
+        </label>
+      </div>
+      <label class="block text-sm font-medium text-slate-600 mb-1">Nome / usuário</label>
+      <input id="editName" class="input mb-3" />
+      <p id="editMsg" class="text-sm text-center mb-3"></p>
+      <div class="flex gap-2">
+        <button onclick="closeEdit()" class="flex-1 rounded-xl py-2.5 text-sm font-bold bg-slate-100 hover:bg-slate-200 transition">Cancelar</button>
+        <button onclick="saveProfile()" class="flex-1 btn-primary text-sm">Salvar</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     const API = (location.protocol === "file:" ? "http://localhost:8000" : "") + "/api/v1";
     const token = () => localStorage.getItem("token");
@@ -156,12 +177,13 @@
         ? `<a href="admin.html" class="inline-flex items-center gap-1.5 bg-white/10 hover:bg-white/20 text-white text-sm font-semibold rounded-xl px-3 py-2 transition">⚙️<span class="hidden sm:inline">Admin</span></a>
            <button id="syncBtn" onclick="syncData()" class="inline-flex items-center gap-1.5 bg-amber-400 hover:bg-amber-300 text-amber-950 text-sm font-bold rounded-xl px-3 py-2 transition">🔄<span class="hidden sm:inline">Atualizar</span></button>`
         : "";
+      ME = u;
       document.getElementById("userBox").innerHTML = `
         ${adminBtn}
-        <div class="flex items-center gap-2 bg-white/10 rounded-full pl-1 pr-3 py-1">
+        <div onclick="openEdit()" class="flex items-center gap-2 bg-white/10 hover:bg-white/20 rounded-full pl-1 pr-3 py-1 cursor-pointer transition" title="Editar meu perfil">
           <img src="${avatar(u.name, u.photo_url)}" class="w-9 h-9 rounded-full object-cover ring-2 ring-white/30" />
           <div class="leading-tight">
-            <div class="text-white text-sm font-bold">${u.name}</div>
+            <div class="text-white text-sm font-bold flex items-center gap-1">${u.name} <span class="text-[10px] text-white/50">✎</span></div>
             <div class="text-emerald-200 text-[11px] font-semibold">${u.total_points} pts · #${u.position ?? '-'}</div>
           </div>
         </div>
@@ -376,7 +398,14 @@
       if (!rk.length) { box.innerHTML = `<li class="p-6 text-center text-sm text-slate-400">Ninguém no ranking ainda</li>`; return; }
       box.innerHTML = rk.map(u => `
         <li onclick="openProfile(${u.user_id})" class="flex items-center gap-3 px-4 py-3 cursor-pointer transition hover:bg-emerald-50/50 ${tint[u.position] || ''}">
-          <span class="w-7 text-center text-base font-extrabold ${u.position <= 3 ? '' : 'text-slate-300'}">${medal[u.position] || u.position}</span>
+          <div class="w-8 text-center leading-none">
+            <div class="text-base font-extrabold ${u.position <= 3 ? '' : 'text-slate-300'}">${medal[u.position] || u.position}</div>
+            ${u.delta > 0
+              ? `<div class="text-[10px] font-extrabold text-emerald-600">▲${u.delta}</div>`
+              : u.delta < 0
+                ? `<div class="text-[10px] font-extrabold text-red-500">▼${-u.delta}</div>`
+                : `<div class="text-[10px] text-slate-300">–</div>`}
+          </div>
           <img src="${avatar(u.name, u.photo_url, 36)}" class="w-9 h-9 rounded-full object-cover ring-2 ${ring[u.position] || 'ring-slate-100'}" />
           <span class="flex-1 text-sm font-bold text-slate-700 truncate">${u.name}</span>
           <span class="text-base font-extrabold text-emerald-700">${u.total_points}</span>
@@ -458,6 +487,60 @@
     }
 
     function closeProfile() { document.getElementById("profileModal").classList.add("hidden"); }
+
+    // ---- Editar meu perfil (nome + foto) ----
+    let ME = null;
+    let EDIT_PHOTO = null;
+
+    function openEdit() {
+      if (!ME) return;
+      EDIT_PHOTO = null;
+      document.getElementById("editName").value = ME.name || "";
+      document.getElementById("editAvatar").src = avatar(ME.name, ME.photo_url, 96);
+      document.getElementById("editMsg").textContent = "";
+      document.getElementById("editModal").classList.remove("hidden");
+    }
+    function closeEdit() { document.getElementById("editModal").classList.add("hidden"); }
+
+    function pickPhoto(ev) {
+      const file = ev.target.files[0];
+      if (!file) return;
+      resizeImage(file, 256, dataUrl => {
+        EDIT_PHOTO = dataUrl;
+        document.getElementById("editAvatar").src = dataUrl;
+      });
+    }
+
+    function resizeImage(file, max, cb) {
+      const reader = new FileReader();
+      reader.onload = e => {
+        const img = new Image();
+        img.onload = () => {
+          let width = img.width, height = img.height;
+          if (width > height && width > max) { height = Math.round(height * max / width); width = max; }
+          else if (height >= width && height > max) { width = Math.round(width * max / height); height = max; }
+          const canvas = document.createElement("canvas");
+          canvas.width = width; canvas.height = height;
+          canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+          cb(canvas.toDataURL("image/jpeg", 0.7));
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    async function saveProfile() {
+      const name = document.getElementById("editName").value.trim();
+      const msg = document.getElementById("editMsg");
+      const body = {};
+      if (name && name !== ME.name) body.name = name;
+      if (EDIT_PHOTO) body.photo_url = EDIT_PHOTO;
+      if (!Object.keys(body).length) { closeEdit(); return; }
+      msg.className = "text-sm text-center text-slate-400"; msg.textContent = "salvando...";
+      const r = await fetch(`${API}/users/me`, { method: "PATCH", headers: headers(), body: JSON.stringify(body) });
+      if (r.ok) { closeEdit(); await Promise.all([loadProfile(), loadRanking()]); }
+      else { const e = await r.json().catch(() => ({})); msg.className = "text-sm text-center text-red-500"; msg.textContent = e.detail || "Erro ao salvar"; }
+    }
 
     // Auto-login se já houver token salvo.
     if (token()) start();

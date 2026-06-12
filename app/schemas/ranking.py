@@ -11,3 +11,4 @@ class RankingItem(BaseModel):
     total_points: int
     hits: int
     exact_hits: int = 0  # nº de placares cravados (bônus de placar exato)
+    delta: int = 0       # variação de posição no dia (+ subiu, - desceu)

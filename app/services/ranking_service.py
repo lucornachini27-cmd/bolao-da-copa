@@ -1,4 +1,5 @@
 """Ranking/leaderboard derivado de bets.points_earned (fonte única de verdade)."""
+import json
 from typing import List
 
 from sqlalchemy import case, func
@@ -7,6 +8,8 @@ from sqlalchemy.orm import Session
 from app.models.bet import Bet
 from app.models.match import Match
 from app.models.user import User
+from app.services import settings_service
+from app.utils.timezone import now_utc, to_local
 
 
 def compute(db: Session) -> List[dict]:
@@ -54,4 +57,33 @@ def compute(db: Session) -> List[dict]:
                 "exact_hits": int(row.exact_hits or 0),
             }
         )
+    _apply_daily_movement(db, ranking)
     return ranking
+
+
+def _apply_daily_movement(db: Session, ranking: List[dict]) -> None:
+    """Variação de posição do dia (seta ↑/↓), guardada na tabela settings.
+
+    Tira um 'retrato' das posições 1x por dia (horário de Brasília). Durante o
+    dia, delta = posição do retrato − posição atual (positivo = subiu).
+    """
+    today = to_local(now_utc()).date().isoformat()
+    snap_date = settings_service.get_setting(db, "ranking_snap_date")
+    raw = settings_service.get_setting(db, "ranking_prev_pos")
+    prev = {}
+    if raw:
+        try:
+            prev = json.loads(raw)
+        except (ValueError, TypeError):
+            prev = {}
+
+    if snap_date != today:
+        snapshot = {str(e["user_id"]): e["position"] for e in ranking}
+        settings_service.set_setting(db, "ranking_prev_pos", json.dumps(snapshot))
+        settings_service.set_setting(db, "ranking_snap_date", today)
+        for e in ranking:
+            e["delta"] = 0
+    else:
+        for e in ranking:
+            p = prev.get(str(e["user_id"]))
+            e["delta"] = (p - e["position"]) if isinstance(p, int) else 0
