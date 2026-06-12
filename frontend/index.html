@@ -67,14 +67,19 @@
 
     <!-- APP -->
     <main id="app" class="hidden">
+      <!-- Abas (só no celular) -->
+      <div class="lg:hidden grid grid-cols-2 gap-2 mb-4">
+        <button id="tabBtnJogos" onclick="showTab('jogos')" class="rounded-xl py-2.5 text-sm font-bold bg-emerald-600 text-white transition">⚽ Jogos</button>
+        <button id="tabBtnRanking" onclick="showTab('ranking')" class="rounded-xl py-2.5 text-sm font-bold bg-white text-slate-500 border border-slate-200 transition">🏆 Ranking</button>
+      </div>
       <div class="grid lg:grid-cols-3 gap-6">
         <!-- Partidas -->
-        <div class="lg:col-span-2">
+        <div id="tabJogos" class="lg:col-span-2 lg:block">
           <h2 class="text-lg font-extrabold flex items-center gap-2 mb-4"><span>⚽</span> Partidas</h2>
           <div id="matches" class="grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
         </div>
         <!-- Ranking -->
-        <aside class="lg:sticky lg:top-24 self-start">
+        <aside id="tabRanking" class="hidden lg:block lg:sticky lg:top-24 self-start">
           <h2 class="text-lg font-extrabold flex items-center gap-2 mb-4"><span>🏆</span> Ranking</h2>
           <ol id="ranking" class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden divide-y divide-slate-50"></ol>
         </aside>
@@ -345,6 +350,22 @@
       }
     }
 
+    function showTab(tab) {
+      const jogos = document.getElementById("tabJogos");
+      const rank = document.getElementById("tabRanking");
+      const active = "rounded-xl py-2.5 text-sm font-bold bg-emerald-600 text-white transition";
+      const idle = "rounded-xl py-2.5 text-sm font-bold bg-white text-slate-500 border border-slate-200 transition";
+      if (tab === "ranking") {
+        jogos.classList.add("hidden"); rank.classList.remove("hidden");
+        document.getElementById("tabBtnRanking").className = active;
+        document.getElementById("tabBtnJogos").className = idle;
+      } else {
+        rank.classList.add("hidden"); jogos.classList.remove("hidden");
+        document.getElementById("tabBtnJogos").className = active;
+        document.getElementById("tabBtnRanking").className = idle;
+      }
+    }
+
     async function loadRanking() {
       const r = await fetch(`${API}/ranking`, { headers: headers() });
       const rk = await r.json();
@@ -357,8 +378,14 @@
         <li onclick="openProfile(${u.user_id})" class="flex items-center gap-3 px-4 py-3 cursor-pointer transition hover:bg-emerald-50/50 ${tint[u.position] || ''}">
           <span class="w-7 text-center text-base font-extrabold ${u.position <= 3 ? '' : 'text-slate-300'}">${medal[u.position] || u.position}</span>
           <img src="${avatar(u.name, u.photo_url, 36)}" class="w-9 h-9 rounded-full object-cover ring-2 ${ring[u.position] || 'ring-slate-100'}" />
-          <span class="flex-1 text-sm font-bold text-slate-700 truncate">${u.name}</span>
-          <span class="text-sm font-extrabold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg">${u.total_points}</span>
+          <div class="flex-1 min-w-0">
+            <div class="text-sm font-bold text-slate-700 truncate">${u.name}</div>
+            <div class="text-[11px] text-slate-400">🎯 ${u.exact_hits} cravada${u.exact_hits === 1 ? '' : 's'}</div>
+          </div>
+          <div class="text-right leading-tight">
+            <div class="text-base font-extrabold text-emerald-700">${u.total_points}</div>
+            <div class="text-[10px] text-slate-400 uppercase tracking-wide">pts</div>
+          </div>
         </li>`).join("");
     }
 

@@ -10,3 +10,4 @@ class RankingItem(BaseModel):
     photo_url: Optional[str] = None
     total_points: int
     hits: int
+    exact_hits: int = 0  # nº de placares cravados (bônus de placar exato)
