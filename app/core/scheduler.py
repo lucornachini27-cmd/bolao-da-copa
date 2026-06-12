@@ -25,7 +25,7 @@ _scheduler: Optional[BackgroundScheduler] = None
 def _bot_notification_job() -> None:
     db = SessionLocal()
     try:
-        now = now_utc()
+        now = datetime.now(timezone.utc)
         
         # Encontra jogos que começam em 15 minutos ou menos e ainda não enviou preview
         from datetime import timedelta
@@ -109,7 +109,7 @@ def start_scheduler() -> None:
         id="espn_sync",
         max_instances=1,
         coalesce=True,
-        next_run_time=now_utc(),  # já sincroniza na subida
+        next_run_time=datetime.now(timezone.utc),  # já sincroniza na subida
     )
     
     # Job do Bot (roda a cada minuto para ser preciso na checagem dos 15 minutos)
