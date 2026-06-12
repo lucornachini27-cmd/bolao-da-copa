@@ -57,6 +57,19 @@ def create_participant(payload: AdminUserCreate, db: Session = Depends(get_db)):
     return user
 
 
+@router.delete("/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_participant(user_id: int, db: Session = Depends(get_db)):
+    """Exclui um participante e todos os palpites dele (admins não podem ser excluídos)."""
+    user = db.get(User, user_id)
+    if user is None:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado.")
+    if user.is_admin:
+        raise HTTPException(status_code=400, detail="Não é possível excluir um administrador.")
+    db.query(Bet).filter(Bet.user_id == user_id).delete(synchronize_session=False)
+    db.delete(user)
+    db.commit()
+
+
 @router.get("/users/{user_id}/bets", response_model=List[BetOut])
 def list_user_bets(user_id: int, db: Session = Depends(get_db)):
     return db.query(Bet).filter(Bet.user_id == user_id).all()

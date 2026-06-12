@@ -60,7 +60,8 @@
         <button onclick="addParticipant()" class="bg-slate-200 rounded-lg px-4 py-2 font-medium hover:bg-slate-300">+ Adicionar</button>
         <span id="partMsg" class="text-sm text-slate-500"></span>
       </div>
-      <p class="text-xs text-slate-400">Senha inicial padrão: <code>trocar123</code> (o participante troca depois).</p>
+      <p class="text-xs text-slate-400 mb-3">Senha inicial padrão: <code>trocar123</code> (o participante troca depois).</p>
+      <ul id="partList" class="border rounded-lg divide-y"></ul>
     </section>
 
     <!-- Lançar palpites -->
@@ -133,13 +134,34 @@
 
     // ---- Participantes ----
     async function loadParticipants() {
-      const r = await fetch(`${API}/admin/users`, { headers: H() });
-      const users = await r.json();
+      const users = await (await fetch(`${API}/admin/users`, { headers: H() })).json();
+      const parts = users.filter(u => !u.is_admin);
       const sel = document.getElementById("participant");
       const current = sel.value;
       sel.innerHTML = `<option value="">— selecione um participante —</option>` +
-        users.filter(u => !u.is_admin).map(u => `<option value="${u.id}">${u.name}</option>`).join("");
+        parts.map(u => `<option value="${u.id}">${u.name}</option>`).join("");
       sel.value = current;
+      const list = document.getElementById("partList");
+      list.innerHTML = parts.length
+        ? parts.map(u => `<li class="flex items-center justify-between px-3 py-2 text-sm">
+            <span>${u.name}</span>
+            <button onclick="deleteParticipant(${u.id}, '${(u.name || '').replace(/'/g, "\\'")}')" class="text-red-500 hover:text-red-700 text-xs font-semibold">🗑️ excluir</button>
+          </li>`).join("")
+        : `<li class="px-3 py-3 text-sm text-slate-400 text-center">nenhum participante ainda</li>`;
+    }
+
+    async function deleteParticipant(id, name) {
+      if (!confirm(`Excluir "${name}" e TODOS os palpites dele? Isso não pode ser desfeito.`)) return;
+      const r = await fetch(`${API}/admin/users/${id}`, { method: "DELETE", headers: H() });
+      if (r.ok) {
+        await loadParticipants();
+        const msg = document.getElementById("partMsg");
+        msg.textContent = "✓ excluído";
+        setTimeout(() => msg.textContent = "", 3000);
+      } else {
+        const e = await r.json().catch(() => ({}));
+        alert("Erro ao excluir: " + (e.detail || r.status));
+      }
     }
     async function addParticipant() {
       const username = document.getElementById("newUsername").value.trim();
