@@ -38,16 +38,19 @@ class WhatsAppService:
             if not mime_type:
                 mime_type = "image/png"
 
+            import os
+            file_name = os.path.basename(image_path)
+            
             payload = {
                 "number": to_number_or_group,
+                "mediatype": "image",
+                "mimetype": mime_type,
+                "caption": caption,
+                "media": b64_encoded,
+                "fileName": file_name,
                 "options": {
                     "delay": 1200,
                     "presence": "composing"
-                },
-                "mediaMessage": {
-                    "mediatype": "image",
-                    "caption": caption,
-                    "media": f"data:{mime_type};base64,{b64_encoded}"
                 }
             }
 
