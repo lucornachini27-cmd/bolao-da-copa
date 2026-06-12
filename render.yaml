@@ -5,11 +5,13 @@ services:
     name: bolao-da-copa
     runtime: python
     plan: free
-    buildCommand: pip install -r requirements.txt && playwright install chromium --with-deps
+    buildCommand: pip install -r requirements.txt && playwright install chromium
     startCommand: alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: PYTHON_VERSION
         value: "3.12.6"
+      - key: PLAYWRIGHT_BROWSERS_PATH
+        value: "0"
       - key: DATABASE_URL
         sync: false
       - key: SECRET_KEY
