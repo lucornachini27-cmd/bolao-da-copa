@@ -70,11 +70,21 @@ def _bot_notification_job() -> None:
         for match in finished_matches:
             log.info(f"[bot] Gerando resultado para jogo {match.id} (finalizado)")
             try:
-                # TODO: We would call generate_result_image here similar to preview
-                # For now, let's just mark it as sent so it doesn't loop
-                match.result_sent = 1
-                db.commit()
-                log.info(f"[bot] Notificação de resultado marcada como enviada para {match.id}")
+                from app.services.image_generator_service import generate_result_image
+                result_path = generate_result_image(db, match.id)
+                
+                caption = "FIM DE JOGO! 🏁\nConfira o placar final e como ficou o ranking da galera:"
+                target_number = getattr(settings, 'whatsapp_target_number', '')
+                
+                if target_number:
+                    success = whatsapp_service.send_image(target_number, result_path, caption)
+                    if success:
+                        match.result_sent = 1
+                        db.commit()
+                        log.info(f"[bot] Notificação de resultado marcada como enviada para {match.id}")
+                else:
+                    log.warning("whatsapp_target_number não configurado. Imagem gerada mas não enviada.")
+                    
             except Exception as e:
                 log.error(f"[bot] Falha ao processar resultado do jogo {match.id}: {e}")
 
