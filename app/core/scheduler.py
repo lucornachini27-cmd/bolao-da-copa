@@ -45,7 +45,7 @@ def _bot_notification_job() -> None:
                 from app.services.image_generator_service import generate_preview_image
                 image_path = generate_preview_image(db, match.id)
                 
-                caption = f"🚨 Apostas Fechadas para {match.home_team} vs {match.away_team}!\nConfira os palpites da galera:"
+                caption = f"Palpites encerrados para o jogo {match.home_team} vs {match.away_team} 🔒\nConfira os palpites da galera:"
                 target_number = getattr(settings, 'whatsapp_target_number', '')
                 
                 if target_number:
