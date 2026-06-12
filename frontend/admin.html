@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Painel Admin · Bolão da Copa</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen">
+  <div class="max-w-5xl mx-auto p-4">
+    <header class="flex items-center justify-between py-4">
+      <h1 class="text-2xl font-bold text-slate-800">⚙️ Painel Admin</h1>
+      <div class="flex items-center gap-2">
+        <a href="index.html" class="text-sm bg-white border rounded-lg px-3 py-2 hover:bg-slate-50">← Voltar ao bolão</a>
+        <button onclick="logout()" class="text-sm text-slate-400 hover:text-red-500 px-2">sair</button>
+      </div>
+    </header>
+
+    <!-- Ações rápidas -->
+    <section class="bg-white rounded-2xl shadow p-5 mb-6">
+      <div class="flex flex-wrap items-center gap-3">
+        <button onclick="sync()" class="bg-amber-500 text-white rounded-lg px-4 py-2 font-medium hover:bg-amber-600">🔄 Atualizar dados da API</button>
+        <button onclick="recalc()" class="bg-slate-700 text-white rounded-lg px-4 py-2 font-medium hover:bg-slate-800">♻️ Recalcular pontos</button>
+        <span id="actionMsg" class="text-sm text-slate-500"></span>
+      </div>
+    </section>
+
+    <!-- Configurações do campeonato -->
+    <section class="bg-white rounded-2xl shadow p-5 mb-6">
+      <h2 class="text-lg font-semibold mb-4">Configurações do campeonato</h2>
+      <div class="grid sm:grid-cols-3 gap-4">
+        <label class="block">
+          <span class="text-sm text-slate-600">Bônus de placar exato</span>
+          <input id="points_exact_score" type="number" min="0" class="w-full border rounded-lg px-3 py-2 mt-1" />
+        </label>
+        <label class="block">
+          <span class="text-sm text-slate-600">Pontos por vitória/empate</span>
+          <input id="points_correct_result" type="number" min="0" class="w-full border rounded-lg px-3 py-2 mt-1" />
+        </label>
+        <label class="block">
+          <span class="text-sm text-slate-600">Travar palpite (min antes)</span>
+          <input id="bet_lock_minutes" type="number" min="0" class="w-full border rounded-lg px-3 py-2 mt-1" />
+        </label>
+      </div>
+      <div class="mt-4 flex items-center gap-3">
+        <button onclick="saveSettings()" class="bg-emerald-600 text-white rounded-lg px-4 py-2 font-medium hover:bg-emerald-700">Salvar configurações</button>
+        <span id="settingsMsg" class="text-sm text-emerald-600"></span>
+      </div>
+      <p class="text-xs text-slate-400 mt-2">Pontuação acumulativa: cravar o placar = vitória + bônus (ex.: 1 + 2 = 3). Alterar reprocessa os jogos já finalizados.</p>
+    </section>
+
+    <!-- Participantes -->
+    <section class="bg-white rounded-2xl shadow p-5 mb-6">
+      <h2 class="text-lg font-semibold mb-4">Participantes</h2>
+      <div class="flex flex-wrap items-end gap-3 mb-4">
+        <label class="block">
+          <span class="text-sm text-slate-600">Usuário</span>
+          <input id="newUsername" placeholder="usuário do concorrente" class="border rounded-lg px-3 py-2 mt-1" />
+        </label>
+        <button onclick="addParticipant()" class="bg-slate-200 rounded-lg px-4 py-2 font-medium hover:bg-slate-300">+ Adicionar</button>
+        <span id="partMsg" class="text-sm text-slate-500"></span>
+      </div>
+      <p class="text-xs text-slate-400">Senha inicial padrão: <code>trocar123</code> (o participante troca depois).</p>
+    </section>
+
+    <!-- Lançar palpites -->
+    <section class="bg-white rounded-2xl shadow p-5 mb-10">
+      <h2 class="text-lg font-semibold mb-1">Lançar / ajustar palpites</h2>
+      <p class="text-sm text-slate-500 mb-4">Escolha o participante e preencha os placares apostados. Aqui a trava de tempo <b>não</b> se aplica.</p>
+      <div class="flex flex-wrap items-center gap-3 mb-4">
+        <select id="participant" onchange="loadBets()" class="border rounded-lg px-3 py-2">
+          <option value="">— selecione um participante —</option>
+        </select>
+        <input id="filter" oninput="renderRows()" placeholder="filtrar por seleção..." class="border rounded-lg px-3 py-2" />
+      </div>
+      <div id="betRows" class="divide-y max-h-[60vh] overflow-y-auto"></div>
+    </section>
+  </div>
+
+  <script>
+    const API = (location.protocol === "file:" ? "http://localhost:8000" : "") + "/api/v1";
+    const token = () => localStorage.getItem("token");
+    const H = () => ({ "Content-Type": "application/json", Authorization: `Bearer ${token()}` });
+
+    let MATCHES = [];      // todas as partidas
+    let BETMAP = {};       // { match_id: {predicted_home, predicted_away} } do participante atual
+
+    function logout() { localStorage.removeItem("token"); location.href = "index.html"; }
+
+    async function guard() {
+      if (!token()) return logout();
+      const r = await fetch(`${API}/users/me`, { headers: H() });
+      if (!r.ok) return logout();
+      const u = await r.json();
+      if (!u.is_admin) { alert("Acesso restrito a administradores."); location.href = "index.html"; return; }
+      await Promise.all([loadSettings(), loadParticipants(), loadMatches()]);
+    }
+
+    // ---- Ações ----
+    async function sync() {
+      const el = document.getElementById("actionMsg");
+      el.textContent = "⏳ atualizando...";
+      const r = await fetch(`${API}/admin/sync`, { method: "POST", headers: H() });
+      const d = await r.json();
+      el.textContent = r.ok ? `✓ ${d.total} jogos (recalc: ${d.points_recalculated})` : `✗ ${d.detail || "erro"}`;
+      await loadMatches(); renderRows();
+    }
+    async function recalc() {
+      const el = document.getElementById("actionMsg");
+      el.textContent = "⏳ recalculando...";
+      const r = await fetch(`${API}/admin/recalculate`, { method: "POST", headers: H() });
+      const d = await r.json();
+      el.textContent = r.ok ? `✓ ${d.updated} palpites atualizados` : `✗ erro`;
+    }
+
+    // ---- Configurações ----
+    async function loadSettings() {
+      const r = await fetch(`${API}/admin/settings`, { headers: H() });
+      const list = await r.json();
+      list.forEach(s => { const el = document.getElementById(s.key); if (el) el.value = s.value; });
+    }
+    async function saveSettings() {
+      const keys = ["points_exact_score", "points_correct_result", "bet_lock_minutes"];
+      for (const k of keys) {
+        await fetch(`${API}/admin/settings/${k}`, {
+          method: "PUT", headers: H(),
+          body: JSON.stringify({ value: String(document.getElementById(k).value) }),
+        });
+      }
+      document.getElementById("settingsMsg").textContent = "✓ salvo (jogos finalizados reprocessados)";
+      setTimeout(() => document.getElementById("settingsMsg").textContent = "", 3000);
+    }
+
+    // ---- Participantes ----
+    async function loadParticipants() {
+      const r = await fetch(`${API}/admin/users`, { headers: H() });
+      const users = await r.json();
+      const sel = document.getElementById("participant");
+      const current = sel.value;
+      sel.innerHTML = `<option value="">— selecione um participante —</option>` +
+        users.filter(u => !u.is_admin).map(u => `<option value="${u.id}">${u.name}</option>`).join("");
+      sel.value = current;
+    }
+    async function addParticipant() {
+      const username = document.getElementById("newUsername").value.trim();
+      const msg = document.getElementById("partMsg");
+      if (!username) { msg.textContent = "informe o usuário"; return; }
+      const r = await fetch(`${API}/admin/users`, { method: "POST", headers: H(), body: JSON.stringify({ username }) });
+      if (r.ok) {
+        msg.textContent = "✓ adicionado";
+        document.getElementById("newUsername").value = "";
+        await loadParticipants();
+      } else { const e = await r.json().catch(() => ({})); msg.textContent = "✗ " + (e.detail || "erro"); }
+      setTimeout(() => msg.textContent = "", 3000);
+    }
+
+    // ---- Palpites ----
+    async function loadMatches() {
+      MATCHES = await (await fetch(`${API}/matches`, { headers: H() })).json();
+    }
+    async function loadBets() {
+      BETMAP = {};
+      const uid = document.getElementById("participant").value;
+      if (uid) {
+        const bets = await (await fetch(`${API}/admin/users/${uid}/bets`, { headers: H() })).json();
+        bets.forEach(b => BETMAP[b.match_id] = b);
+      }
+      renderRows();
+    }
+    function statusBadge(s) {
+      const map = { FINISHED: "bg-slate-200 text-slate-700", IN_PLAY: "bg-red-100 text-red-700", PAUSED: "bg-red-100 text-red-700" };
+      return `<span class="text-xs px-2 py-0.5 rounded ${map[s] || 'bg-emerald-100 text-emerald-700'}">${s}</span>`;
+    }
+    function renderRows() {
+      const uid = document.getElementById("participant").value;
+      const box = document.getElementById("betRows");
+      if (!uid) { box.innerHTML = `<p class="text-slate-400 text-sm py-4">Selecione um participante acima.</p>`; return; }
+      const f = document.getElementById("filter").value.toLowerCase();
+      const rows = MATCHES.filter(m => m.teams_defined && (!f || m.home_team.toLowerCase().includes(f) || m.away_team.toLowerCase().includes(f)));
+      box.innerHTML = rows.map(m => {
+        const bet = BETMAP[m.id] || {};
+        const dt = new Date(m.local_date).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+        const real = m.score_home != null ? `<span class="text-xs text-slate-500">real ${m.score_home}-${m.score_away}</span>` : "";
+        return `
+        <div class="flex items-center gap-3 py-2 text-sm">
+          <span class="text-xs text-slate-400 w-24">${dt}</span>
+          ${statusBadge(m.status)}
+          <span class="flex-1 text-right">${m.home_team}</span>
+          <input id="ph_${m.id}" type="number" min="0" value="${bet.predicted_home ?? ""}" class="w-12 border rounded text-center py-1" />
+          <span>x</span>
+          <input id="pa_${m.id}" type="number" min="0" value="${bet.predicted_away ?? ""}" class="w-12 border rounded text-center py-1" />
+          <span class="flex-1">${m.away_team}</span>
+          ${real}
+          <button onclick="saveBet(${m.id})" class="bg-emerald-600 text-white text-xs rounded px-3 py-1 hover:bg-emerald-700">salvar</button>
+          <span id="msg_${m.id}" class="text-xs w-16"></span>
+        </div>`;
+      }).join("");
+    }
+    async function saveBet(matchId) {
+      const uid = Number(document.getElementById("participant").value);
+      const ph = document.getElementById(`ph_${matchId}`).value;
+      const pa = document.getElementById(`pa_${matchId}`).value;
+      const msg = document.getElementById(`msg_${matchId}`);
+      if (ph === "" || pa === "") { msg.textContent = "preencha"; msg.className = "text-xs w-16 text-red-500"; return; }
+      const r = await fetch(`${API}/admin/bets`, {
+        method: "POST", headers: H(),
+        body: JSON.stringify({ user_id: uid, match_id: matchId, predicted_home: Number(ph), predicted_away: Number(pa) }),
+      });
+      if (r.ok) {
+        const b = await r.json();
+        BETMAP[matchId] = b;
+        msg.textContent = `✓ ${b.points_earned} pts`; msg.className = "text-xs w-16 text-emerald-600";
+      } else { const e = await r.json().catch(() => ({})); msg.textContent = "✗"; msg.className = "text-xs w-16 text-red-500"; alert(e.detail || "erro"); }
+    }
+
+    guard();
+  </script>
+</body>
+</html>

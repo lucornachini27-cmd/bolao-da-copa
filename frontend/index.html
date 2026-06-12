@@ -1,0 +1,430 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Bolão da Copa</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = { theme: { extend: { fontFamily: { sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'] } } } };
+  </script>
+  <style type="text/tailwindcss">
+    @layer components {
+      .input { @apply w-full rounded-xl border border-slate-200 bg-slate-50/60 px-4 py-2.5 text-sm outline-none transition focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-500/10; }
+      .btn-primary { @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 font-bold text-white bg-gradient-to-r from-emerald-600 to-green-600 shadow-md shadow-emerald-600/20 transition hover:from-emerald-700 hover:to-green-700 hover:shadow-lg active:scale-[.99]; }
+      .card { @apply bg-white rounded-2xl border border-slate-100 shadow-sm p-4 transition duration-200 hover:shadow-xl hover:-translate-y-1; }
+      .score-input { @apply w-11 h-11 rounded-xl border-2 border-slate-200 text-center text-lg font-extrabold text-slate-800 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/15; }
+    }
+  </style>
+  <style>
+    body { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; background-color: #f1f5f9;
+      background-image: radial-gradient(900px 520px at 12% -8%, rgba(16,185,129,.16), transparent 60%),
+                        radial-gradient(820px 520px at 102% -10%, rgba(251,191,36,.13), transparent 55%);
+      background-attachment: fixed; }
+    input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    input[type=number] { appearance: textfield; -moz-appearance: textfield; }
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+  </style>
+</head>
+<body class="min-h-screen text-slate-800 antialiased">
+  <!-- HEADER -->
+  <header class="sticky top-0 z-40 bg-gradient-to-r from-emerald-700 via-emerald-700 to-green-800 shadow-lg shadow-emerald-900/10">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-amber-400 grid place-items-center text-xl shadow-md shadow-amber-900/20">🏆</div>
+        <div class="leading-tight">
+          <div class="text-white font-extrabold text-lg tracking-tight">Bolão da Copa</div>
+          <div class="text-emerald-200 text-[11px] font-semibold uppercase tracking-wide">Copa do Mundo 2026</div>
+        </div>
+      </div>
+      <div id="userBox" class="hidden items-center gap-2"></div>
+    </div>
+  </header>
+
+  <div class="max-w-6xl mx-auto px-4 py-6">
+    <!-- LOGIN / CADASTRO -->
+    <section id="authCard" class="max-w-sm mx-auto mt-8 sm:mt-14">
+      <div class="bg-white rounded-3xl shadow-xl shadow-slate-200/60 border border-slate-100 p-7">
+        <div class="text-center mb-6">
+          <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500 to-green-600 grid place-items-center text-2xl mx-auto mb-3 shadow-lg shadow-emerald-600/30">⚽</div>
+          <h2 class="text-xl font-extrabold">Entrar no bolão</h2>
+          <p class="text-sm text-slate-400 mt-1">Seu usuário e senha</p>
+        </div>
+        <div class="space-y-3">
+          <input id="username" placeholder="Usuário" class="input" />
+          <input id="password" type="password" placeholder="Senha" class="input" />
+          <button onclick="login()" class="btn-primary w-full mt-1">Entrar</button>
+          <button onclick="register()" class="w-full rounded-xl py-2.5 text-sm font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 transition">Criar conta</button>
+          <p id="authMsg" class="text-sm text-center"></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- APP -->
+    <main id="app" class="hidden">
+      <div class="grid lg:grid-cols-3 gap-6">
+        <!-- Partidas -->
+        <div class="lg:col-span-2">
+          <h2 class="text-lg font-extrabold flex items-center gap-2 mb-4"><span>⚽</span> Partidas</h2>
+          <div id="matches" class="grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
+        </div>
+        <!-- Ranking -->
+        <aside class="lg:sticky lg:top-24 self-start">
+          <h2 class="text-lg font-extrabold flex items-center gap-2 mb-4"><span>🏆</span> Ranking</h2>
+          <ol id="ranking" class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden divide-y divide-slate-50"></ol>
+        </aside>
+      </div>
+    </main>
+  </div>
+
+  <!-- Modal de Perfil -->
+  <div id="profileModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-start justify-center p-4 overflow-y-auto" onclick="if(event.target===this)closeProfile()">
+    <div class="bg-white rounded-3xl shadow-2xl max-w-lg w-full my-8 overflow-hidden">
+      <div id="profileBody"></div>
+      <div class="p-4 pt-0">
+        <button onclick="closeProfile()" class="w-full rounded-xl py-2.5 text-sm font-bold bg-slate-100 hover:bg-slate-200 transition">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API = (location.protocol === "file:" ? "http://localhost:8000" : "") + "/api/v1";
+    const token = () => localStorage.getItem("token");
+    const headers = () => ({ "Content-Type": "application/json", Authorization: `Bearer ${token()}` });
+    const avatar = (name, url, px = 40) => url || `https://placehold.co/${px}x${px}/e2e8f0/64748b?text=${encodeURIComponent((name && name[0]) || '?')}`;
+
+    async function login() {
+      const body = new URLSearchParams({
+        username: document.getElementById("username").value.trim(),
+        password: document.getElementById("password").value,
+      });
+      const r = await fetch(`${API}/auth/login`, { method: "POST", body });
+      if (!r.ok) return msg("Usuário ou senha inválidos.");
+      const data = await r.json();
+      localStorage.setItem("token", data.access_token);
+      start();
+    }
+
+    async function register() {
+      const r = await fetch(`${API}/auth/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: document.getElementById("username").value.trim(),
+          password: document.getElementById("password").value,
+        }),
+      });
+      if (!r.ok) { const e = await r.json().catch(() => ({})); return msg(e.detail || "Não foi possível cadastrar."); }
+      msg("Cadastro feito! Agora clique em Entrar.", "text-emerald-600");
+    }
+
+    function msg(t, cls = "text-red-500") {
+      const el = document.getElementById("authMsg");
+      el.className = `text-sm text-center font-medium ${cls}`;
+      el.textContent = t;
+    }
+
+    function logout() {
+      localStorage.removeItem("token");
+      location.reload();
+    }
+
+    async function start() {
+      document.getElementById("authCard").classList.add("hidden");
+      document.getElementById("app").classList.remove("hidden");
+      document.getElementById("userBox").classList.remove("hidden");
+      document.getElementById("userBox").classList.add("flex");
+      await Promise.all([loadProfile(), loadMatches(), loadRanking()]);
+    }
+
+    async function loadProfile() {
+      const r = await fetch(`${API}/users/me`, { headers: headers() });
+      if (!r.ok) return logout();
+      const u = await r.json();
+      const adminBtn = u.is_admin
+        ? `<a href="admin.html" class="inline-flex items-center gap-1.5 bg-white/10 hover:bg-white/20 text-white text-sm font-semibold rounded-xl px-3 py-2 transition">⚙️<span class="hidden sm:inline">Admin</span></a>
+           <button id="syncBtn" onclick="syncData()" class="inline-flex items-center gap-1.5 bg-amber-400 hover:bg-amber-300 text-amber-950 text-sm font-bold rounded-xl px-3 py-2 transition">🔄<span class="hidden sm:inline">Atualizar</span></button>`
+        : "";
+      document.getElementById("userBox").innerHTML = `
+        ${adminBtn}
+        <div class="flex items-center gap-2 bg-white/10 rounded-full pl-1 pr-3 py-1">
+          <img src="${avatar(u.name, u.photo_url)}" class="w-9 h-9 rounded-full object-cover ring-2 ring-white/30" />
+          <div class="leading-tight">
+            <div class="text-white text-sm font-bold">${u.name}</div>
+            <div class="text-emerald-200 text-[11px] font-semibold">${u.total_points} pts · #${u.position ?? '-'}</div>
+          </div>
+        </div>
+        <button onclick="logout()" class="text-emerald-200/80 hover:text-white text-xs font-semibold px-2 py-2 transition">sair</button>`;
+    }
+
+    async function syncData() {
+      const btn = document.getElementById("syncBtn");
+      btn.disabled = true;
+      btn.innerHTML = "⏳<span class='hidden sm:inline'> Atualizando</span>";
+      const r = await fetch(`${API}/admin/sync`, { method: "POST", headers: headers() });
+      if (r.ok) {
+        const s = await r.json();
+        await Promise.all([loadMatches(), loadRanking(), loadProfile()]);
+        console.log("Sincronizado:", s);
+      } else {
+        const e = await r.json().catch(() => ({}));
+        alert("Falha ao atualizar: " + (e.detail || r.status));
+        btn.disabled = false;
+        btn.innerHTML = "🔄<span class='hidden sm:inline'> Atualizar</span>";
+      }
+    }
+
+    function statusBadge(s) {
+      const m = {
+        FINISHED: ["Encerrado", "bg-slate-100 text-slate-500", ""],
+        IN_PLAY: ["Ao vivo", "bg-red-50 text-red-600", `<span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>`],
+        PAUSED: ["Intervalo", "bg-red-50 text-red-600", ""],
+        TIMED: ["Agendado", "bg-emerald-50 text-emerald-600", ""],
+        SCHEDULED: ["Agendado", "bg-emerald-50 text-emerald-600", ""],
+      };
+      const [label, cls, dot] = m[s] || [s, "bg-slate-100 text-slate-500", ""];
+      return `<span class="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-full ${cls}">${dot}${label}</span>`;
+    }
+
+    function formatRemaining(ms) {
+      const s = Math.floor(ms / 1000);
+      const d = Math.floor(s / 86400);
+      const h = Math.floor((s % 86400) / 3600);
+      const mm = Math.floor((s % 3600) / 60);
+      const ss = s % 60;
+      const pad = n => String(n).padStart(2, "0");
+      return d > 0 ? `${d}d ${pad(h)}h ${pad(mm)}m` : `${pad(h)}:${pad(mm)}:${pad(ss)}`;
+    }
+
+    function tickCountdowns() {
+      document.querySelectorAll(".cd").forEach(el => {
+        const ms = Date.parse(el.dataset.closes) - Date.now();
+        if (ms > 0) {
+          el.textContent = "⏳ Fecha em " + formatRemaining(ms);
+        } else {
+          el.textContent = "🔒 Encerrado";
+          el.className = "cd inline-flex items-center gap-1 text-[11px] font-bold text-slate-400 bg-slate-100 px-2.5 py-1 rounded-full";
+          const mid = el.dataset.mid;
+          ["h_" + mid, "a_" + mid, "btn_" + mid].forEach(id => {
+            const node = document.getElementById(id);
+            if (node) { node.disabled = true; node.classList.add("opacity-50"); }
+          });
+        }
+      });
+    }
+
+    let tickerStarted = false;
+    function startCountdownTicker() {
+      if (!tickerStarted) { tickerStarted = true; setInterval(tickCountdowns, 1000); }
+    }
+
+    let MY_BETS = {};  // { match_id: {predicted_home, predicted_away, points_earned} }
+
+    async function loadMatches() {
+      // Só jogos com seleções definidas + os palpites que ESTE usuário já salvou.
+      const [matches, myBets] = await Promise.all([
+        fetch(`${API}/matches?defined_only=true`, { headers: headers() }).then(r => r.json()),
+        fetch(`${API}/bets/me`, { headers: headers() }).then(r => r.json()),
+      ]);
+      MY_BETS = {};
+      myBets.forEach(b => MY_BETS[b.match_id] = b);
+
+      // Jogos de hoje/que vêm em primeiro (cronológico); os que já passaram descem pro fim.
+      const TWO_H = 2 * 3600 * 1000;
+      const now = Date.now();
+      const jaFoi = m => m.status === "FINISHED" || now >= Date.parse(m.utc_date) + TWO_H;
+      matches.sort((a, b) => {
+        const pa = jaFoi(a), pb = jaFoi(b);
+        if (pa !== pb) return pa ? 1 : -1;
+        const ka = Date.parse(a.utc_date), kb = Date.parse(b.utc_date);
+        return pa ? kb - ka : ka - kb;
+      });
+
+      const box = document.getElementById("matches");
+      if (!matches.length) {
+        box.className = "";
+        box.innerHTML = `<div class="bg-white rounded-2xl border border-slate-100 p-10 text-center text-slate-400">Nenhum jogo disponível ainda.</div>`;
+        return;
+      }
+      box.className = "grid grid-cols-1 sm:grid-cols-2 gap-4";
+      box.innerHTML = matches.map(m => {
+        const dt = new Date(m.local_date).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+        const finished = m.score_home != null;
+        const bet = MY_BETS[m.id];
+        const win = finished && bet ? (bet.points_earned > 0) : null;
+        const mine = bet
+          ? `<div class="mt-2 text-center"><span class="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full ${finished ? (win ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-400') : 'bg-emerald-50 text-emerald-700'}">Seu palpite ${bet.predicted_home}-${bet.predicted_away}${finished ? ` · ${bet.points_earned} pt${bet.points_earned === 1 ? '' : 's'}` : ''}</span></div>`
+          : "";
+        return `
+        <div class="card flex flex-col">
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-[11px] font-bold text-slate-400">${dt}</span>
+            ${statusBadge(m.status)}
+          </div>
+          <div class="grid grid-cols-3 items-center gap-1">
+            <div class="text-center">
+              <div class="w-12 h-12 mx-auto rounded-full bg-slate-50 ring-1 ring-slate-100 grid place-items-center overflow-hidden">
+                <img src="${m.home_team_crest || 'https://placehold.co/40/f1f5f9/94a3b8?text=%20'}" class="w-9 h-9 object-contain" />
+              </div>
+              <div class="text-xs font-bold mt-1.5 leading-tight">${m.home_team}</div>
+            </div>
+            <div class="text-center">
+              ${finished
+                ? `<div class="text-2xl font-extrabold tracking-tight">${m.score_home}<span class="text-slate-300 mx-1">:</span>${m.score_away}</div>`
+                : `<div class="flex items-center justify-center gap-1.5">
+                     <input id="h_${m.id}" type="number" min="0" value="${bet ? bet.predicted_home : ""}" class="score-input" ${m.is_open ? "" : "disabled"} />
+                     <span class="text-slate-300 font-bold">×</span>
+                     <input id="a_${m.id}" type="number" min="0" value="${bet ? bet.predicted_away : ""}" class="score-input" ${m.is_open ? "" : "disabled"} />
+                   </div>`}
+            </div>
+            <div class="text-center">
+              <div class="w-12 h-12 mx-auto rounded-full bg-slate-50 ring-1 ring-slate-100 grid place-items-center overflow-hidden">
+                <img src="${m.away_team_crest || 'https://placehold.co/40/f1f5f9/94a3b8?text=%20'}" class="w-9 h-9 object-contain" />
+              </div>
+              <div class="text-xs font-bold mt-1.5 leading-tight">${m.away_team}</div>
+            </div>
+          </div>
+          ${mine}
+          <div class="mt-2 text-center min-h-[1.75rem] flex items-center justify-center">
+            ${m.is_open
+              ? `<span class="cd inline-flex items-center gap-1 text-[11px] font-bold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full" data-closes="${m.closes_at}" data-mid="${m.id}"></span>`
+              : (finished ? "" : `<span class="inline-flex items-center gap-1 text-[11px] font-bold text-slate-400 bg-slate-100 px-2.5 py-1 rounded-full">🔒 Encerrado</span>`)}
+          </div>
+          ${finished ? "" : `<button id="btn_${m.id}" onclick="saveBet(${m.id})" class="w-full text-sm ${m.is_open ? 'btn-primary' : 'rounded-xl py-2.5 font-bold bg-slate-100 text-slate-400 cursor-not-allowed'}" ${m.is_open ? "" : "disabled"}>
+            ${m.is_open ? (bet ? "Atualizar palpite" : "Salvar palpite") : "🔒 Palpites encerrados"}</button>`}
+          <div class="mt-3 pt-2.5 border-t border-slate-100">
+            <button onclick="toggleBets(${m.id})" class="w-full text-xs font-semibold text-slate-400 hover:text-emerald-600 flex items-center justify-center gap-1.5 transition">
+              <span id="arrow_${m.id}" class="text-[10px]">▾</span> Quem palpitou
+            </button>
+            <div id="bets_${m.id}" class="hidden mt-2 space-y-1.5"></div>
+          </div>
+        </div>`;
+      }).join("");
+      tickCountdowns();
+      startCountdownTicker();
+    }
+
+    async function saveBet(matchId) {
+      const btn = document.getElementById(`btn_${matchId}`);
+      const ph = document.getElementById(`h_${matchId}`).value;
+      const pa = document.getElementById(`a_${matchId}`).value;
+      if (ph === "" || pa === "") { btn.textContent = "preencha os dois placares"; return; }
+      btn.disabled = true;
+      btn.textContent = "salvando...";
+      const r = await fetch(`${API}/bets`, {
+        method: "POST",
+        headers: headers(),
+        body: JSON.stringify({ match_id: matchId, predicted_home: Number(ph), predicted_away: Number(pa) }),
+      });
+      btn.disabled = false;
+      if (r.ok) {
+        MY_BETS[matchId] = await r.json();
+        btn.textContent = "✓ Palpite salvo!";
+      } else {
+        const e = await r.json().catch(() => ({}));
+        btn.textContent = e.detail || "Erro ao salvar";
+      }
+    }
+
+    async function loadRanking() {
+      const r = await fetch(`${API}/ranking`, { headers: headers() });
+      const rk = await r.json();
+      const medal = { 1: "🥇", 2: "🥈", 3: "🥉" };
+      const tint = { 1: "bg-amber-50/70", 2: "bg-slate-50", 3: "bg-orange-50/50" };
+      const ring = { 1: "ring-amber-300", 2: "ring-slate-300", 3: "ring-orange-300" };
+      const box = document.getElementById("ranking");
+      if (!rk.length) { box.innerHTML = `<li class="p-6 text-center text-sm text-slate-400">Ninguém no ranking ainda</li>`; return; }
+      box.innerHTML = rk.map(u => `
+        <li onclick="openProfile(${u.user_id})" class="flex items-center gap-3 px-4 py-3 cursor-pointer transition hover:bg-emerald-50/50 ${tint[u.position] || ''}">
+          <span class="w-7 text-center text-base font-extrabold ${u.position <= 3 ? '' : 'text-slate-300'}">${medal[u.position] || u.position}</span>
+          <img src="${avatar(u.name, u.photo_url, 36)}" class="w-9 h-9 rounded-full object-cover ring-2 ${ring[u.position] || 'ring-slate-100'}" />
+          <span class="flex-1 text-sm font-bold text-slate-700 truncate">${u.name}</span>
+          <span class="text-sm font-extrabold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg">${u.total_points}</span>
+        </li>`).join("");
+    }
+
+    async function toggleBets(matchId) {
+      const box = document.getElementById(`bets_${matchId}`);
+      const arrow = document.getElementById(`arrow_${matchId}`);
+      if (!box.classList.contains("hidden")) { box.classList.add("hidden"); arrow.textContent = "▾"; return; }
+      box.classList.remove("hidden"); arrow.textContent = "▴";
+      box.innerHTML = `<div class="text-xs text-slate-400 text-center py-1">carregando...</div>`;
+      const list = await (await fetch(`${API}/matches/${matchId}/bets`, { headers: headers() })).json();
+      if (!list.length) { box.innerHTML = `<div class="text-xs text-slate-400 text-center py-2">ninguém palpitou ainda</div>`; return; }
+      const anyHidden = list.some(b => !b.revealed);
+      box.innerHTML = list.map(b => {
+        const pred = b.revealed ? `${b.predicted_home}-${b.predicted_away}` : "🔒";
+        const pts = (b.revealed && b.points_earned != null)
+          ? `<span class="text-[11px] font-extrabold w-8 text-right ${b.points_earned > 0 ? 'text-emerald-600' : 'text-slate-300'}">${b.points_earned}pt</span>`
+          : `<span class="w-8"></span>`;
+        return `<div class="flex items-center gap-2 bg-slate-50 rounded-lg px-2 py-1.5">
+          <img src="${avatar(b.user_name, b.photo_url, 20)}" class="w-5 h-5 rounded-full object-cover" />
+          <span class="flex-1 truncate text-xs font-semibold text-slate-600">${b.user_name}</span>
+          <span class="font-mono text-xs font-bold">${pred}</span>
+          ${pts}
+        </div>`;
+      }).join("") + (anyHidden ? `<div class="text-[10px] text-slate-400 text-center pt-1">🔒 placares aparecem quando o palpite fechar</div>` : "");
+    }
+
+    async function openProfile(userId) {
+      const modal = document.getElementById("profileModal");
+      const body = document.getElementById("profileBody");
+      body.innerHTML = `<div class="text-center text-slate-400 py-10">carregando...</div>`;
+      modal.classList.remove("hidden");
+      const r = await fetch(`${API}/users/${userId}/profile`, { headers: headers() });
+      if (!r.ok) { body.innerHTML = `<div class="text-center text-red-500 py-10">não foi possível carregar</div>`; return; }
+      const p = await r.json();
+      const rows = p.bets.map(b => {
+        const finished = b.score_home != null;
+        const real = finished ? `${b.score_home}-${b.score_away}` : "–";
+        const pred = b.revealed ? `${b.predicted_home}-${b.predicted_away}` : "🔒";
+        let pts = "";
+        if (b.revealed && finished && b.points_earned != null) {
+          pts = `<span class="inline-block min-w-[1.6rem] rounded-full px-1.5 py-0.5 text-xs font-extrabold ${b.points_earned > 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-400'}">${b.points_earned}</span>`;
+        }
+        const dt = new Date(b.local_date).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+        return `<tr class="border-t border-slate-100">
+          <td class="py-2 pr-2 text-xs text-slate-400 whitespace-nowrap">${dt}</td>
+          <td class="py-2 pr-2 text-xs font-semibold">${b.home_team} <span class="text-slate-300">×</span> ${b.away_team}</td>
+          <td class="py-2 text-center font-mono text-xs font-bold">${pred}</td>
+          <td class="py-2 text-center font-mono text-xs text-slate-500">${real}</td>
+          <td class="py-2 text-center">${pts}</td>
+        </tr>`;
+      }).join("");
+      body.innerHTML = `
+        <div class="bg-gradient-to-r from-emerald-600 to-green-700 p-5 text-white">
+          <div class="flex items-center gap-4">
+            <img src="${avatar(p.name, p.photo_url, 64)}" class="w-16 h-16 rounded-2xl object-cover ring-4 ring-white/25" />
+            <div>
+              <div class="text-xl font-extrabold">${p.name}</div>
+              <div class="mt-1.5 flex gap-1.5 text-[11px]">
+                <span class="inline-flex items-center gap-1 bg-white/15 rounded-full px-2.5 py-0.5 font-bold">🏆 #${p.position ?? '-'}</span>
+                <span class="inline-flex items-center gap-1 bg-white/15 rounded-full px-2.5 py-0.5 font-bold">${p.total_points} pts</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="p-5">
+          <div class="max-h-80 overflow-y-auto">
+            <table class="w-full text-sm">
+              <thead><tr class="text-[10px] uppercase tracking-wide text-slate-400 text-left">
+                <th class="py-2 pr-2">Data</th><th class="pr-2">Jogo</th><th class="text-center">Palpite</th><th class="text-center">Real</th><th class="text-center">Pts</th>
+              </tr></thead>
+              <tbody>${rows || `<tr><td colspan="5" class="text-center text-slate-400 py-6">sem palpites ainda</td></tr>`}</tbody>
+            </table>
+          </div>
+        </div>`;
+    }
+
+    function closeProfile() { document.getElementById("profileModal").classList.add("hidden"); }
+
+    // Auto-login se já houver token salvo.
+    if (token()) start();
+  </script>
+</body>
+</html>

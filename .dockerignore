@@ -1,0 +1,14 @@
+.venv/
+__pycache__/
+**/__pycache__/
+*.pyc
+*.db
+.env
+.git/
+.claude/
+tests/
+*.bat
+_*.py
+DEPLOY.md
+.gitignore
+.dockerignore

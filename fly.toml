@@ -1,0 +1,24 @@
+# Fly.io — se o nome "app" já estiver em uso, o `fly launch` pede outro.
+app = "bolao-da-copa"
+primary_region = "iad"   # US East (mesma região do banco Neon = consultas rápidas)
+
+[build]
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "stop"     # desliga quando ocioso (economiza recursos grátis)
+  auto_start_machines = true      # liga sozinho no próximo acesso
+  min_machines_running = 0
+
+  [[http_service.checks]]
+    method = "GET"
+    path = "/health"
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "10s"
+
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 1
+  memory = "512mb"

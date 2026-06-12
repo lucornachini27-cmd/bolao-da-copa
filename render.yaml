@@ -1,0 +1,22 @@
+# Render Blueprint — cria o serviço web automaticamente a partir deste arquivo.
+# Os segredos (sync: false) você preenche no painel do Render, não ficam no código.
+services:
+  - type: web
+    name: bolao-da-copa
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.6"
+      - key: DATABASE_URL
+        sync: false
+      - key: SECRET_KEY
+        sync: false
+      - key: FOOTBALL_DATA_TOKEN
+        sync: false
+      - key: BOOTSTRAP_ADMIN_USER
+        sync: false
+      - key: BOOTSTRAP_ADMIN_PASSWORD
+        sync: false

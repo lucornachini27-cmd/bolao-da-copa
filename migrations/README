@@ -1,0 +1,9 @@
+Migrations gerenciadas pelo Alembic.
+
+Gerar a primeira migração (autogenerate a partir dos models):
+    alembic revision --autogenerate -m "init schema"
+
+Aplicar:
+    alembic upgrade head
+
+A URL do banco é injetada em env.py a partir de app.core.config.settings.
