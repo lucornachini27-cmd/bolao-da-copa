@@ -201,8 +201,8 @@ def generate_result_image(db: Session, match_id: int, mock_score=None) -> str:
     home_crest = get_team_crest(match.home_team, match.home_team_crest)
     away_crest = get_team_crest(match.away_team, match.away_team_crest)
 
-    final_home = mock_score[0] if mock_score else match.home_score
-    final_away = mock_score[1] if mock_score else match.away_score
+    final_home = mock_score[0] if mock_score else match.score_home
+    final_away = mock_score[1] if mock_score else match.score_away
 
     if final_home is None or final_away is None:
         final_home, final_away = 0, 0
