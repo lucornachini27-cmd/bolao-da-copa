@@ -8,10 +8,16 @@ class Settings(BaseSettings):
     # Banco: SQLite no MVP, PostgreSQL em produção.
     database_url: str = "sqlite:///./bolao.db"
 
-    # football-data.org
+    # football-data.org (legado — substituído pela ESPN)
     football_data_token: str = ""
     football_data_base_url: str = "https://api.football-data.org/v4"
     competition_code: str = "WC"
+
+    # ESPN scoreboard (fonte atual: pública, em tempo real, sem chave)
+    espn_scoreboard_url: str = (
+        "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard"
+    )
+    espn_dates: str = "20260611-20260719"  # janela da Copa 2026 (YYYYMMDD-YYYYMMDD)
 
     # Auth (JWT)
     secret_key: str = "CHANGE_ME_dev_only_nao_use_em_producao"

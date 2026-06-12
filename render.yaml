@@ -14,8 +14,6 @@ services:
         sync: false
       - key: SECRET_KEY
         sync: false
-      - key: FOOTBALL_DATA_TOKEN
-        sync: false
       - key: BOOTSTRAP_ADMIN_USER
         sync: false
       - key: BOOTSTRAP_ADMIN_PASSWORD
