@@ -33,7 +33,11 @@ def compute(db: Session) -> List[dict]:
         .outerjoin(Match, Match.id == Bet.match_id)
         .filter(User.is_admin == False)  # noqa: E712 — admin não entra no ranking
         .group_by(User.id, User.name, User.photo_url)
-        .order_by(func.coalesce(func.sum(Bet.points_earned), 0).desc(), User.name.asc())
+        .order_by(
+            func.coalesce(func.sum(Bet.points_earned), 0).desc(),       # 1º: pontos
+            func.coalesce(func.sum(exact_case), 0).desc(),              # desempate: cravadas
+            User.name.asc(),
+        )
         .all()
     )
 
