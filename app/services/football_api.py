@@ -15,6 +15,7 @@ from pydantic import BaseModel
 
 from app.core.config import settings
 from app.core.constants import UNDEFINED_TEAM
+from app.core.team_names import to_pt
 
 # Estado da ESPN -> status interno do bolão.
 _STATE_MAP = {"pre": "TIMED", "in": "IN_PLAY", "post": "FINISHED"}
@@ -54,7 +55,7 @@ def _team_name(team: Optional[dict]) -> str:
     # (ex.: "RD16 W7", sem logo) viram "A definir" e ficam ocultos até saírem os times.
     if not name or not team.get("logo") or name.upper() in {"TBD", "TBA"}:
         return UNDEFINED_TEAM
-    return name
+    return to_pt(name)
 
 
 def _score(raw, state: str) -> Optional[int]:
