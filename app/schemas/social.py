@@ -17,6 +17,7 @@ class MatchBetView(BaseModel):
     predicted_away: Optional[int] = None
     points_earned: Optional[int] = None
     revealed: bool
+    has_bet: bool = True
 
 
 class ProfileBet(BaseModel):

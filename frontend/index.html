@@ -445,14 +445,23 @@
       if (!list.length) { box.innerHTML = `<div class="text-xs text-slate-400 text-center py-2">ninguém palpitou ainda</div>`; return; }
       const anyHidden = list.some(b => !b.revealed);
       box.innerHTML = list.map(b => {
-        const pred = b.revealed ? `${b.predicted_home}-${b.predicted_away}` : "🔒";
-        const pts = (b.revealed && b.points_earned != null)
+        let pred = "";
+        let nameClass = "text-slate-600 font-semibold";
+        if (!b.has_bet) {
+          pred = "Sem palpite";
+          nameClass = "text-red-600 font-extrabold";
+        } else {
+          pred = b.revealed ? `${b.predicted_home}-${b.predicted_away}` : "🔒";
+        }
+        
+        const pts = (b.has_bet && b.revealed && b.points_earned != null)
           ? `<span class="text-[11px] font-extrabold w-8 text-right ${b.points_earned > 0 ? 'text-emerald-600' : 'text-slate-300'}">${b.points_earned}pt</span>`
           : `<span class="w-8"></span>`;
+          
         return `<div class="flex items-center gap-2 bg-slate-50 rounded-lg px-2 py-1.5">
           <img src="${avatar(b.user_name, b.photo_url, 20)}" class="w-5 h-5 rounded-full object-cover" />
-          <span class="flex-1 truncate text-xs font-semibold text-slate-600">${b.user_name}</span>
-          <span class="font-mono text-xs font-bold inline-block w-12 text-center">${pred}</span>
+          <span class="flex-1 truncate text-xs ${nameClass}">${b.user_name}</span>
+          <span class="font-mono text-[11px] font-bold inline-block w-20 text-center whitespace-nowrap">${pred}</span>
           ${pts}
         </div>`;
       }).join("") + (anyHidden ? `<div class="text-[10px] text-slate-400 text-center pt-1">🔒 placares aparecem quando o palpite fechar</div>` : "");

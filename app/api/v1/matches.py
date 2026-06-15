@@ -61,25 +61,41 @@ def match_bets(
     lock = settings_service.get_setting_int(db, "bet_lock_minutes", 60)
     open_now = bet_service.is_open_at(match.status, match.utc_date, now_utc(), lock)
 
-    rows = (
-        db.query(Bet, User)
-        .join(User, Bet.user_id == User.id)
-        .filter(Bet.match_id == match_id, User.is_admin == False)  # noqa: E712
-        .order_by(User.name)
-        .all()
-    )
+    # Busca todos os usuários ativos e não administradores
+    users = db.query(User).filter(User.is_admin == False).order_by(User.name).all() # noqa: E712
+    
+    # Busca os palpites deste jogo e mapeia por user_id
+    bets = db.query(Bet).filter(Bet.match_id == match_id).all()
+    bet_dict = {b.user_id: b for b in bets}
+
     result = []
-    for bet, participant in rows:
-        reveal = viewer.is_admin or bet.user_id == viewer.id or not open_now
-        result.append(
-            MatchBetView(
-                user_id=participant.id,
-                user_name=participant.name,
-                photo_url=participant.photo_url,
-                predicted_home=bet.predicted_home if reveal else None,
-                predicted_away=bet.predicted_away if reveal else None,
-                points_earned=bet.points_earned if reveal else None,
-                revealed=reveal,
+    for participant in users:
+        bet = bet_dict.get(participant.id)
+        if bet:
+            reveal = viewer.is_admin or bet.user_id == viewer.id or not open_now
+            result.append(
+                MatchBetView(
+                    user_id=participant.id,
+                    user_name=participant.name,
+                    photo_url=participant.photo_url,
+                    predicted_home=bet.predicted_home if reveal else None,
+                    predicted_away=bet.predicted_away if reveal else None,
+                    points_earned=bet.points_earned if reveal else None,
+                    revealed=reveal,
+                    has_bet=True,
+                )
             )
-        )
+        else:
+            result.append(
+                MatchBetView(
+                    user_id=participant.id,
+                    user_name=participant.name,
+                    photo_url=participant.photo_url,
+                    predicted_home=None,
+                    predicted_away=None,
+                    points_earned=None,
+                    revealed=True,
+                    has_bet=False,
+                )
+            )
     return result

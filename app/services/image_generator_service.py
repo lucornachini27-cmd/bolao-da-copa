@@ -37,24 +37,24 @@ def generate_preview_image(db: Session, match_id: int) -> str:
     home_crest = get_team_crest(match.home_team, match.home_team_crest)
     away_crest = get_team_crest(match.away_team, match.away_team_crest)
 
-    bets_query = db.query(Bet, User).join(User, Bet.user_id == User.id).filter(
-        Bet.match_id == match.id,
-        User.is_admin == False
-    ).order_by(User.name).all()
+    users = db.query(User).filter(User.is_admin == False).order_by(User.name).all()
+    bets = db.query(Bet).filter(Bet.match_id == match.id).all()
+    bet_dict = {b.user_id: b for b in bets}
 
     bets_list = []
-    for bet, user in bets_query:
+    for user in users:
+        bet = bet_dict.get(user.id)
         bets_list.append({
             "name": user.name,
-            "predicted_home": bet.predicted_home,
-            "predicted_away": bet.predicted_away,
+            "predicted_home": bet.predicted_home if bet else None,
+            "predicted_away": bet.predicted_away if bet else None,
             "initial": user.name[0].upper() if user.name else "?",
-            "photo_url": user.photo_url
+            "photo_url": user.photo_url,
+            "has_bet": bet is not None
         })
 
     ranking = ranking_service.compute(db)
 
-    # Simplified HTML Generation
     html = f"""<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -98,14 +98,14 @@ def generate_preview_image(db: Session, match_id: int) -> str:
         .versus-badge {{ background-color: var(--text-main); color: white; font-size: 10px; font-weight: 800; padding: 4px 10px; border-radius: 9999px; z-index: 2; }}
         .palpites-title {{ font-size: 11px; color: var(--text-muted); text-align: center; margin-bottom: 12px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; font-weight: 800; text-transform: uppercase; }}
         .player-list {{ display: flex; flex-direction: column; gap: 2px; }}
-        .player-row {{ display: flex; align-items: center; justify-content: space-between; padding: 8px 6px; border-radius: 12px; }}
-        .player-info {{ display: flex; align-items: center; gap: 10px; }}
+        .bet-item {{ display: flex; align-items: center; justify-content: space-between; padding: 8px 6px; border-radius: 12px; }}
+        .bet-left {{ display: flex; align-items: center; gap: 10px; }}
         .avatar {{ width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: white; overflow: hidden; }}
         .avatar-1 {{ background: linear-gradient(135deg, #6366f1, #4f46e5); }} .avatar-2 {{ background: linear-gradient(135deg, #ec4899, #d946ef); }}
         .avatar-3 {{ background: linear-gradient(135deg, #14b8a6, #0d9488); }} .avatar-4 {{ background: linear-gradient(135deg, #f59e0b, #d97706); }}
         .avatar-5 {{ background: linear-gradient(135deg, #ef4444, #dc2626); }} .avatar-6 {{ background: linear-gradient(135deg, #8b5cf6, #7c3aed); }}
         .player-name {{ font-size: 13px; color: #334155; font-weight: 600; }}
-        .score-pill {{ font-size: 14px; font-weight: 800; color: var(--text-main); background-color: #f1f5f9; width: 72px; padding: 5px 0; text-align: center; border-radius: 8px; border: 1px solid rgba(226, 232, 240, 0.5); }}
+        .bet-score {{ font-size: 14px; font-weight: 800; color: var(--text-main); background-color: #f1f5f9; width: 72px; padding: 5px 0; text-align: center; border-radius: 8px; border: 1px solid rgba(226, 232, 240, 0.5); }}
         
         .ranking-title-container {{ display: flex; align-items: center; gap: 10px; font-size: 16px; font-weight: 800; color: var(--text-main); margin-bottom: 16px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; }}
         .rank-list {{ display: flex; flex-direction: column; gap: 4px; }}
@@ -130,7 +130,7 @@ def generate_preview_image(db: Session, match_id: int) -> str:
                 <div class="team"><div class="flag-wrapper"><img src="{away_crest}" class="flag-img"></div><span>{match.away_team}</span></div>
             </div>
         </div>
-        <div class="palpites-title">Palpites da Galera ({len(bets_list)})</div>
+        <div class="palpites-title">Palpites da Galera ({len([b for b in bets_list if b['has_bet']])})</div>
         <div class="player-list">"""
 
     avatar_index = 1
@@ -140,7 +140,15 @@ def generate_preview_image(db: Session, match_id: int) -> str:
             avatar_html = f"""<div class="avatar"><img src="{photo}" style="width: 100%; height: 100%; object-fit: cover;"></div>"""
         else:
             avatar_html = f"""<div class="avatar avatar-{avatar_index}">{b['initial']}</div>"""
-        html += f"""<div class="player-row"><div class="player-info">{avatar_html}<div class="player-name">{b['name']}</div></div><div class="score-pill">{b['predicted_home']} - {b['predicted_away']}</div></div>"""
+        
+        if b["has_bet"]:
+            score_display = f"""<div class="bet-score">{b["predicted_home"]} <span style="color:#cbd5e1;font-size:0.9em;margin:0 2px;">×</span> {b["predicted_away"]}</div>"""
+            name_display = f"""<div class="player-name">{b["name"]}</div>"""
+        else:
+            score_display = f"""<div class="bet-score" style="font-size:10px; color:#ef4444; background:none;">Sem palpite</div>"""
+            name_display = f"""<div class="player-name" style="color:#ef4444; font-weight:800;">{b["name"]}</div>"""
+        
+        html += f"""<div class="bet-item"><div class="bet-left">{avatar_html}{name_display}</div>{score_display}</div>"""
         avatar_index = (avatar_index % 6) + 1
 
     html += """</div></div>
@@ -207,33 +215,33 @@ def generate_result_image(db: Session, match_id: int, mock_score=None) -> str:
     if final_home is None or final_away is None:
         final_home, final_away = 0, 0
 
-    bets_query = db.query(Bet, User).join(User, Bet.user_id == User.id).filter(
-        Bet.match_id == match.id,
-        User.is_admin == False
-    ).order_by(User.name).all()
+    users = db.query(User).filter(User.is_admin == False).order_by(User.name).all()
+    bets = db.query(Bet).filter(Bet.match_id == match.id).all()
+    bet_dict = {b.user_id: b for b in bets}
 
     bets_list = []
-    for bet, user in bets_query:
-        # Calculate points
+    for user in users:
+        bet = bet_dict.get(user.id)
         pts = 0
-        if bet.predicted_home == final_home and bet.predicted_away == final_away:
-            pts = 3
-        elif (bet.predicted_home > bet.predicted_away and final_home > final_away) or \
-             (bet.predicted_home < bet.predicted_away and final_home < final_away) or \
-             (bet.predicted_home == bet.predicted_away and final_home == final_away):
-            pts = 1
+        if bet:
+            if bet.predicted_home == final_home and bet.predicted_away == final_away:
+                pts = 3
+            elif (bet.predicted_home > bet.predicted_away and final_home > final_away) or \
+                 (bet.predicted_home < bet.predicted_away and final_home < final_away) or \
+                 (bet.predicted_home == bet.predicted_away and final_home == final_away):
+                pts = 1
 
         bets_list.append({
             "name": user.name,
-            "predicted_home": bet.predicted_home,
-            "predicted_away": bet.predicted_away,
+            "predicted_home": bet.predicted_home if bet else None,
+            "predicted_away": bet.predicted_away if bet else None,
             "points": pts,
-            "initial": user.name[0].upper() if user.name else "?",
-            "photo_url": user.photo_url
+            "photo_url": user.photo_url,
+            "has_bet": bet is not None
         })
 
-    # Sort bets by points descending
-    bets_list.sort(key=lambda x: x["points"], reverse=True)
+    # Sort bets by has_bet (true first), points descending, then name
+    bets_list.sort(key=lambda x: (not x["has_bet"], -x["points"], x["name"]))
     ranking = ranking_service.compute(db)
 
     html = f"""<!DOCTYPE html>
@@ -326,18 +334,26 @@ def generate_result_image(db: Session, match_id: int, mock_score=None) -> str:
     avatar_index = 1
     for b in bets_list:
         pts = b['points']
-        row_class = f"winner-{pts}" if pts > 0 else "loser"
-        points_class = f"points-{pts}"
+        row_class = f"winner-{pts}" if b['has_bet'] else "loser"
+        points_class = f"points-{pts}" if b['has_bet'] else "points-0"
         
         photo = b.get('photo_url')
         if photo:
             avatar_html = f"""<div class="avatar"><img src="{photo}" style="width: 100%; height: 100%; object-fit: cover;"></div>"""
         else:
-            avatar_html = f"""<div class="avatar avatar-{avatar_index}">{b['initial']}</div>"""
-            
+            initial = b['name'][0].upper() if b['name'] else "?"
+            avatar_html = f"""<div class="avatar avatar-{avatar_index}">{initial}</div>"""
+        
+        if b['has_bet']:
+            score_display = f"""<div class="bet-score">{b['predicted_home']} - {b['predicted_away']}</div>"""
+            points_display = f"""<div class="points-badge {points_class}">+{pts}</div>"""
+        else:
+            score_display = f"""<div class="bet-score" style="font-size:10px; color:#ef4444; background:none;">Sem palpite</div>"""
+            points_display = f"""<div class="points-badge {points_class}">+0</div>"""
+
         html += f"""<div class="player-row {row_class}">
             <div class="player-info">{avatar_html}<div class="player-name">{b['name']}</div></div>
-            <div class="bet-info"><div class="bet-score">{b['predicted_home']} - {b['predicted_away']}</div><div class="points-badge {points_class}">+{pts}</div></div>
+            <div class="bet-info">{score_display}{points_display}</div>
         </div>"""
         avatar_index = (avatar_index % 6) + 1
 
