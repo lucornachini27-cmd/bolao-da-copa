@@ -1,0 +1,17 @@
+name: Suspend Evolution API (02h BRT)
+
+on:
+  schedule:
+    # 05:00 UTC = 02:00 Horário de Brasília (BRT)
+    - cron: '0 5 * * *'
+  workflow_dispatch:
+
+jobs:
+  suspend_service:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call Render API to Suspend
+        run: |
+          curl -X POST "https://api.render.com/v1/services/${{ secrets.RENDER_SERVICE_ID_EVOLUTION }}/suspend" \
+               -H "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}" \
+               -H "Accept: application/json"

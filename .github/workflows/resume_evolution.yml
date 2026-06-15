@@ -1,0 +1,17 @@
+name: Resume Evolution API (13h BRT)
+
+on:
+  schedule:
+    # 16:00 UTC = 13:00 Horário de Brasília (BRT)
+    - cron: '0 16 * * *'
+  workflow_dispatch:
+
+jobs:
+  resume_service:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call Render API to Resume
+        run: |
+          curl -X POST "https://api.render.com/v1/services/${{ secrets.RENDER_SERVICE_ID_EVOLUTION }}/resume" \
+               -H "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}" \
+               -H "Accept: application/json"
