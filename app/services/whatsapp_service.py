@@ -54,7 +54,7 @@ class WhatsAppService:
                 }
             }
 
-            response = httpx.post(endpoint, headers=headers, json=payload, timeout=30.0)
+            response = httpx.post(endpoint, headers=headers, json=payload, timeout=60.0)
             response.raise_for_status()
             log.info(f"WhatsApp image sent successfully to {to_number_or_group}.")
             return True

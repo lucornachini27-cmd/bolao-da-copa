@@ -49,11 +49,15 @@ def _bot_notification_job() -> None:
                 target_number = getattr(settings, 'whatsapp_target_number', '')
                 
                 if target_number:
+                    # Marca como enviado ANTES para evitar mensagens duplicadas em caso de timeout
+                    match.preview_sent = 1
+                    db.commit()
+                    
                     success = whatsapp_service.send_image(target_number, image_path, caption)
                     if success:
-                        match.preview_sent = 1
-                        db.commit()
                         log.info(f"[bot] Notificação de preview enviada para {match.id}")
+                    else:
+                        log.warning(f"[bot] Falha ao enviar preview, mas evitamos re-tentar para não causar spam.")
                 else:
                     log.warning("whatsapp_target_number não configurado. Imagem gerada mas não enviada.")
                     
@@ -77,11 +81,15 @@ def _bot_notification_job() -> None:
                 target_number = getattr(settings, 'whatsapp_target_number', '')
                 
                 if target_number:
+                    # Marca como enviado ANTES para evitar mensagens duplicadas em caso de timeout
+                    match.result_sent = 1
+                    db.commit()
+                    
                     success = whatsapp_service.send_image(target_number, result_path, caption)
                     if success:
-                        match.result_sent = 1
-                        db.commit()
-                        log.info(f"[bot] Notificação de resultado marcada como enviada para {match.id}")
+                        log.info(f"[bot] Notificação de resultado enviada para {match.id}")
+                    else:
+                        log.warning(f"[bot] Falha ao enviar resultado, mas evitamos re-tentar para não causar spam.")
                 else:
                     log.warning("whatsapp_target_number não configurado. Imagem gerada mas não enviada.")
                     
