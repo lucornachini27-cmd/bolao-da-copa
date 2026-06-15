@@ -27,9 +27,9 @@ def _bot_notification_job() -> None:
     try:
         now = datetime.now(timezone.utc)
         
-        # Encontra jogos que começam em 15 minutos ou menos e ainda não enviou preview
+        # Encontra jogos que estão começando exatamento agora (ou já começaram) e ainda não enviou preview
         from datetime import timedelta
-        horizon = now + timedelta(minutes=15)
+        horizon = now
         
         upcoming_matches = db.scalars(
             select(Match)
@@ -39,7 +39,7 @@ def _bot_notification_job() -> None:
         ).all()
 
         for match in upcoming_matches:
-            log.info(f"[bot] Gerando preview para jogo {match.id} (começa em breve)")
+            log.info(f"[bot] Gerando preview para jogo {match.id} (começando agora)")
             
             try:
                 from app.services.image_generator_service import generate_preview_image
