@@ -232,6 +232,7 @@
         const real = m.score_home != null ? `<span class="text-xs text-slate-500">real ${m.score_home}-${m.score_away}</span>` : "";
         return `
         <div class="flex items-center gap-3 py-2 text-sm">
+          <span class="text-xs text-slate-400 font-mono w-16" title="ID da Partida">#${m.id}</span>
           <span class="text-xs text-slate-400 w-24">${dt}</span>
           ${statusBadge(m.status)}
           <span class="flex-1 text-right">${m.home_team}</span>
