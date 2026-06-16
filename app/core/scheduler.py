@@ -112,8 +112,58 @@ def _sync_job() -> None:
         db.close()
 
 
+def _ping_evolution_job() -> None:
+    """Mantém a Evolution API acordada perto de eventos importantes."""
+    db = SessionLocal()
+    try:
+        now = now_utc()
+        from datetime import timedelta
+        
+        # Precisa estar acordada entre 20 min antes do jogo até 5 min depois
+        upcoming_preview = db.scalars(
+            select(Match)
+            .where(Match.utc_date >= now - timedelta(minutes=5))
+            .where(Match.utc_date <= now + timedelta(minutes=20))
+            .where(Match.preview_sent == 0)
+        ).first()
+
+        # Precisa estar acordada a partir de 1h55m após o início até a ESPN marcar FINISHED
+        pending_result = db.scalars(
+            select(Match)
+            .where(Match.utc_date <= now - timedelta(minutes=115))
+            .where(Match.status != "FINISHED")
+            .where(Match.result_sent == 0)
+        ).first()
+
+        if upcoming_preview or pending_result:
+            evolution_url = getattr(settings, 'evolution_api_url', '')
+            if evolution_url:
+                import httpx
+                # Apenas um ping leve para resetar o contador de inatividade do Render
+                httpx.get(evolution_url, timeout=10.0)
+                log.info(f"[smart-ping] Ping enviado para {evolution_url} para manter acordada.")
+    except Exception as exc:
+        log.warning("[smart-ping] falhou: %s", exc)
+    finally:
+        db.close()
+
+
 def start_scheduler() -> None:
     global _scheduler
+
+    # --- FORÇAR REENVIO TEMPORÁRIO (Jogo Irã x Nova Zelândia) ---
+    try:
+        db = SessionLocal()
+        m = db.get(Match, 760427)
+        if m and m.preview_sent == 1:
+            m.preview_sent = 0
+            db.commit()
+            log.info("Flag de envio do jogo 760427 resetada para disparar novamente!")
+        db.close()
+    except Exception as e:
+        log.warning(f"Erro no reset temporário: {e}")
+    # -------------------------------------------------------------
+
     minutes = settings.auto_sync_minutes
     if minutes <= 0 or _scheduler is not None:
         return
@@ -136,6 +186,16 @@ def start_scheduler() -> None:
         trigger="interval",
         minutes=1,
         id="bot_notification",
+        max_instances=1,
+        coalesce=True
+    )
+    
+    # Ping Inteligente (roda a cada 5 minutos para manter a Evolution API acordada)
+    _scheduler.add_job(
+        _ping_evolution_job,
+        trigger="interval",
+        minutes=5,
+        id="evolution_smart_ping",
         max_instances=1,
         coalesce=True
     )
