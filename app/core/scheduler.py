@@ -119,19 +119,21 @@ def _ping_evolution_job() -> None:
         now = now_utc()
         from datetime import timedelta
         
-        # Precisa estar acordada entre 20 min antes do jogo até 5 min depois
+        # Precisa estar acordada entre 20 min antes do jogo até 2 horas depois (se o preview falhou)
         upcoming_preview = db.scalars(
             select(Match)
-            .where(Match.utc_date >= now - timedelta(minutes=5))
+            .where(Match.utc_date >= now - timedelta(minutes=120))
             .where(Match.utc_date <= now + timedelta(minutes=20))
             .where(Match.preview_sent == 0)
         ).first()
 
-        # Precisa estar acordada a partir de 1h55m após o início até a ESPN marcar FINISHED
+        # Precisa estar acordada a partir de 1h55m após o início até 6 horas depois (se o resultado falhou)
+        # Removemos o .where(Match.status != "FINISHED") porque se a pessoa forçar o envio manual
+        # de um jogo que JÁ está FINISHED, o Ping precisa acontecer do mesmo jeito!
         pending_result = db.scalars(
             select(Match)
+            .where(Match.utc_date >= now - timedelta(hours=6))
             .where(Match.utc_date <= now - timedelta(minutes=115))
-            .where(Match.status != "FINISHED")
             .where(Match.result_sent == 0)
         ).first()
 
