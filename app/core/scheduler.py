@@ -46,20 +46,20 @@ def _bot_notification_job() -> None:
                 image_path = generate_preview_image(db, match.id)
                 
                 caption = f"Palpites encerrados para o jogo {match.home_team} vs {match.away_team} 🔒\nConfira os palpites da galera:"
-                target_number = getattr(settings, 'whatsapp_target_number', '')
+                target_group = getattr(settings, 'whatsapp_group_id', '')
                 
-                if target_number:
+                if target_group:
                     # Marca como enviado ANTES para evitar mensagens duplicadas em caso de timeout
                     match.preview_sent = 1
                     db.commit()
                     
-                    success = whatsapp_service.send_image(target_number, image_path, caption)
+                    success = whatsapp_service.send_image(target_group, image_path, caption)
                     if success:
                         log.info(f"[bot] Notificação de preview enviada para {match.id}")
                     else:
                         log.warning(f"[bot] Falha ao enviar preview, mas evitamos re-tentar para não causar spam.")
                 else:
-                    log.warning("whatsapp_target_number não configurado. Imagem gerada mas não enviada.")
+                    log.warning("whatsapp_group_id não configurado. Imagem gerada mas não enviada.")
                     
             except Exception as e:
                 log.error(f"[bot] Falha ao gerar/enviar preview do jogo {match.id}: {e}")
@@ -78,20 +78,20 @@ def _bot_notification_job() -> None:
                 result_path = generate_result_image(db, match.id)
                 
                 caption = "FIM DE JOGO! 🏁\nConfira o placar final e como ficou o ranking da galera:"
-                target_number = getattr(settings, 'whatsapp_target_number', '')
+                target_group = getattr(settings, 'whatsapp_group_id', '')
                 
-                if target_number:
+                if target_group:
                     # Marca como enviado ANTES para evitar mensagens duplicadas em caso de timeout
                     match.result_sent = 1
                     db.commit()
                     
-                    success = whatsapp_service.send_image(target_number, result_path, caption)
+                    success = whatsapp_service.send_image(target_group, result_path, caption)
                     if success:
                         log.info(f"[bot] Notificação de resultado enviada para {match.id}")
                     else:
                         log.warning(f"[bot] Falha ao enviar resultado, mas evitamos re-tentar para não causar spam.")
                 else:
-                    log.warning("whatsapp_target_number não configurado. Imagem gerada mas não enviada.")
+                    log.warning("whatsapp_group_id não configurado. Imagem gerada mas não enviada.")
                     
             except Exception as e:
                 log.error(f"[bot] Falha ao processar resultado do jogo {match.id}: {e}")

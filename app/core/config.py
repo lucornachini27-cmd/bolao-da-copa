@@ -41,7 +41,7 @@ class Settings(BaseSettings):
     evolution_api_url: str = ""
     evolution_api_key: str = ""
     evolution_instance_name: str = ""
-    whatsapp_target_number: str = "" # Número ou ID do grupo para onde enviar
+    whatsapp_group_id: str = "" # ID do grupo para onde enviar
 
     model_config = SettingsConfigDict(
         env_file=".env",
