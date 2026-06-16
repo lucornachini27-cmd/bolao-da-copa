@@ -34,6 +34,19 @@ def recalculate(db: Session = Depends(get_db)):
     return {"updated": scoring_service.recalculate_all_finished(db)}
 
 
+@router.post("/resend/{match_id}")
+def force_resend(match_id: int, db: Session = Depends(get_db)):
+    """Reseta a flag de envio para o scheduler pegar no próximo minuto."""
+    match = db.get(Match, match_id)
+    if not match:
+        raise HTTPException(status_code=404, detail="Partida não encontrada")
+    
+    match.preview_sent = 0
+    match.result_sent = 0
+    db.commit()
+    return {"status": "ok", "message": f"Jogo {match_id} resetado."}
+
+
 # ----------------------------- Participantes -----------------------------
 @router.get("/users", response_model=List[UserOut])
 def list_users(db: Session = Depends(get_db)):

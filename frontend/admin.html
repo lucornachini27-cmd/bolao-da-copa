@@ -25,6 +25,19 @@
       </div>
     </section>
 
+    <!-- Disparo Manual WhatsApp -->
+    <section class="bg-white rounded-2xl shadow p-5 mb-6">
+      <h2 class="text-lg font-semibold mb-2">Disparo Manual (WhatsApp)</h2>
+      <p class="text-sm text-slate-500 mb-4">Se a notificação de algum jogo falhar, insira o ID da partida abaixo para forçar o robô a tentar de novo.</p>
+      <div class="flex flex-wrap items-center gap-3">
+        <label class="block">
+          <input id="resendMatchId" type="number" placeholder="ID do Jogo (ex: 760427)" class="border rounded-lg px-3 py-2 w-56" />
+        </label>
+        <button onclick="forceResend()" class="bg-blue-600 text-white rounded-lg px-4 py-2 font-medium hover:bg-blue-700">Forçar Disparo</button>
+        <span id="resendMsg" class="text-sm text-slate-500"></span>
+      </div>
+    </section>
+
     <!-- Configurações do campeonato -->
     <section class="bg-white rounded-2xl shadow p-5 mb-6">
       <h2 class="text-lg font-semibold mb-4">Configurações do campeonato</h2>
@@ -99,19 +112,33 @@
 
     // ---- Ações ----
     async function sync() {
-      const el = document.getElementById("actionMsg");
-      el.textContent = "⏳ atualizando...";
+      const m = document.getElementById("actionMsg"); m.className = "text-sm text-slate-500"; m.textContent = "Atualizando...";
       const r = await fetch(`${API}/admin/sync`, { method: "POST", headers: H() });
-      const d = await r.json();
-      el.textContent = r.ok ? `✓ ${d.total} jogos (recalc: ${d.points_recalculated})` : `✗ ${d.detail || "erro"}`;
-      await loadMatches(); renderRows();
+      if (r.ok) { m.className = "text-sm text-emerald-600"; m.textContent = "Dados atualizados da API externa!"; await loadMatches(); }
+      else m.textContent = "Erro na sincronização.";
     }
     async function recalc() {
-      const el = document.getElementById("actionMsg");
-      el.textContent = "⏳ recalculando...";
+      const m = document.getElementById("actionMsg"); m.className = "text-sm text-slate-500"; m.textContent = "Calculando...";
       const r = await fetch(`${API}/admin/recalculate`, { method: "POST", headers: H() });
-      const d = await r.json();
-      el.textContent = r.ok ? `✓ ${d.updated} palpites atualizados` : `✗ erro`;
+      if (r.ok) { m.className = "text-sm text-emerald-600"; m.textContent = `Feito! ${(await r.json()).updated} palpites atualizados.`; }
+      else m.textContent = "Erro no recálculo.";
+    }
+    
+    async function forceResend() {
+      const matchId = document.getElementById("resendMatchId").value;
+      const msg = document.getElementById("resendMsg");
+      if (!matchId) return;
+      msg.className = "text-sm text-slate-500";
+      msg.textContent = "Solicitando...";
+      const r = await fetch(`${API}/admin/resend/${matchId}`, { method: "POST", headers: H() });
+      if (r.ok) {
+        msg.className = "text-sm text-emerald-600";
+        msg.textContent = "Feito! O robô vai disparar no próximo minuto.";
+      } else {
+        const e = await r.json().catch(() => ({}));
+        msg.className = "text-sm text-red-500";
+        msg.textContent = e.detail || "Erro ao solicitar disparo.";
+      }
     }
 
     // ---- Configurações ----
